@@ -1,0 +1,174 @@
+
+
+/* ############################################################################################################################3 */
+/* ##    the loading clip */
+/* ############################################################################################################################3 */
+#oSlide-loading {
+	position: absolute;
+	top: 47%;
+	left: 47%;
+/*	size of the loading animation*/
+	width: 40px; 
+	height: 40px;
+
+}
+
+#oSlide-loading-image {
+	background-image: url('oSlide.png');
+/* width must be equal to the previous
+ * Height must be equal the previous height x animation images defined in options	*/
+	width:40px;
+	height:480px;	
+}
+
+/* ############################################################################################################################3 */
+/* ##    Image resources */
+/* ############################################################################################################################3 */
+
+
+.oSlideFadeColorBackround{
+	/*background-color:#EE5757;*/
+}
+/* ############################################################################################################################3 */
+/* ##    Navigation Bar */
+/* ############################################################################################################################3 */
+
+
+#oSlideNavigation{
+	display:none;
+	position:absolute;
+	width:100%;
+	z-index: 1105;
+	text-align:center;
+	height:14px;
+	bottom:	-20px;
+}
+
+.oSlideNavigationElement{
+	width:12px;
+	height:12px;
+
+
+	display:inline-block;
+       zoom: 1; /* IE7 (hasLayout)*/
+       *display: inline; /* IE */
+
+	margin:5px;
+	cursor:pointer;
+
+	background-repeat:none;
+	background-image: url('oSlide.png');
+	background-position: 36px -304px;
+}
+
+.oSlideNavigationElement:hover{
+	background-image: url('oSlide.png');
+	background-position: 36px -284px;
+
+}
+
+.oSlideNavigationElement span{
+	display:none;
+}
+
+.oSlideNavigationActiveElement {
+	background-image: url('oSlide.png');
+	background-position: 36px -284px;
+	cursor:default;
+
+}
+
+/* ############################################################################################################################3 */
+/* ##    Navigation  controls */
+/* ############################################################################################################################3 */
+
+.oSlideNavigationControl{
+	position:absolute !important;
+	display:none;
+	width:40px;
+	cursor:pointer;
+
+}
+
+#oSlideNextNavigation {
+	right:0px;
+
+	width: 20%;
+}
+
+#oSlideNextNavigation div{
+	position:absolute;
+	top:40%;
+	width:40px;
+	height:60px;
+	right:0px;
+	background-image: url('oSlide.png');
+	background-position: 40px -180px;
+}
+#oSlideNextNavigation:hover div{
+  	background-position: 40px -58px;
+}
+
+
+
+#oSlidePrewNavigation {
+
+left:0px;
+	width: 20%;
+}
+
+#oSlidePrewNavigation  div {
+
+	position:absolute;
+	top:40%;
+	width:40px;
+	height:60px;
+	left:0px;
+	background-image: url('oSlide.png');
+	background-position: 40px -120px;
+
+
+}
+
+#oSlidePrewNavigation:hover  div {
+    	background-position: 40px 2px;
+}
+
+/* ############################################################################################################################3 */
+/* ##    Zoom Button */
+/* ############################################################################################################################3 */
+
+#oSlideZoomButton{
+	opacity:0.5;
+	filter:alpha(opacity=50); /* For IE8 and earlier */
+	position: absolute;
+	bottom: 0px;
+	right: 0px;
+	background-image: url('oSlide.png');
+	background-position: 40px -320px;
+	width:40px;
+	height:40px;
+	cursor: pointer;
+}
+#oSlideZoomButton:hover{
+	background-position: 40px -360px;	
+}
+
+
+
+/* ############################################################################################################################3 */
+/* ##    Caption */
+/* ############################################################################################################################3 */
+
+
+
+
+
+
+
+
+
+
+
+
+
