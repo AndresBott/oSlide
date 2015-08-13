@@ -5,7 +5,7 @@
  * Copyright (c) 2011 Andrés Bott
  * Examples and documentation at: http://andresbott.com or http://oslide.andresbott.com
  *
- * Version: 1.0.5
+ * Version: 1.0.6-Devel
  * Developed with: jQuery v1.6
  *
  * licensed under the LGPL license:
@@ -83,6 +83,7 @@ function dump(arr,level) {
 		var defaults = {
 			debug:false,
 			baseZIndex : 600,
+			lightboxFunction :  false,
 
 			//=======    Loading   =========//
 			loadingAnimationSpeed:1800,
@@ -170,7 +171,7 @@ function dump(arr,level) {
 
 
 		//=======    internal usage Vars  =========//
-		this.version = "1.0.5-devel";
+		this.version = "1.0.6-devel";
 		this.resizeTimeout = false; // holds a timeout when resizing
 		this.NonSlidecontainer = $container // points to the original, in code, defined Container
 		this.containerWidth = 0	 // container sizes
@@ -187,6 +188,8 @@ function dump(arr,level) {
 		this.isFullScreen = false;
 		this.nextButton = false;  // holds the div with the next image button
 		this.prewButton = false;  // holds the div with the previous image button
+		this.thumbBoxInitImageIndex = false; // if using lightbox mode, this holds the index of the image wich was made click on
+		this.fulscreenContainer = false; // holds the fulscreen container object
 		//this.currentKBanimationType = false; // holds the ken Bruns animation tipe of the curren image
 
 		//=======    internal usage Vars  =========//
@@ -238,111 +241,195 @@ function dump(arr,level) {
 		constructor: function(){
 			var $this = this;
 
-			//   		$(this.container).css({
-			//			"position":"relative",
-			//			"overflow":"hidden",
-			//			'z-index': this.options.baseZIndex
-			//		})
+			if($this.options.lightboxFunction == true){
+				$this.consoleOut("Starting a new instance of oSlide in lighbox Mode");
+
+				this.imgLength =  $(this.options.images).size();
+
+				//alert(this.imgLength)
+
+				for(var i in this.options.images){
+					(function(i){
+						$($this.options.images[i].obj).click(function(event){
+							// ==============================================================================================================
+							// ==============================================================================================================
+							event.preventDefault();
+
+							$this.container = $('<div class="oslideFullScreenContainer oslideFullScreenLihtboxContainer"></div>').css({
+								"position":"absolute",
+								"overflow":"hidden",
+								'z-index': $this.options.baseZIndex+1,
+								"top":"0px",
+								"left":"0px",
+								"width":"100%",
+								"height":"100%",
+								"background":"black"
+
+							});
+							$($this.NonSlidecontainer).append($this.container);
+
+							$('body').css("overflow","hidden");
+							$this.isFullScreen = true;
 
 
-			//var tempcontainerWidth = $($this.NonSlidecontainer).width();
-			//var tempcontainerHeight = $($this.NonSlidecontainer).height();
-
-			$this.container = $('<div class="oSlideContainer"></div>').css({
-				"position":"absolute",
-				"overflow":"hidden",
-				'z-index': this.options.baseZIndex+1
-			});
-			$($this.NonSlidecontainer).append($this.container);
-
-
-			// resize
-			this.resize();
-			$(window).resize(function(){
-				clearTimeout ($this.resizeTimeout);
-				$this.resizeTimeout = setTimeout(function(){
-					//alert("rees")
-					$this.resize();
-					$this.reloadImage();
-				}, 300);
+							$this.resize();
+							$(window).resize(function(){
+								clearTimeout ($this.resizeTimeout);
+								$this.resizeTimeout = setTimeout(function(){
+									//alert("rees")
+									$this.resize();
+									$this.reloadImage();
+								}, 300);
 
 
-			})
+							})
 
-			// action keys, only in fullscreen
-			if($this.options.enableKeys == true){
-				$(document).keydown(function(e){
-					if($this.isFullScreen == true){
-						if (e.keyCode==27){
-							$this.exitFullScreen();
+
+							// action keys, only in fullscreen
+							if($this.options.enableKeys == true){
+								$(document).keydown(function(e){
+									if($this.isFullScreen == true){
+										if (e.keyCode==27){
+											$this.exitLighboxmode();
+										}
+										if (e.keyCode==37){
+											$this.previous();
+										}
+										if (e.keyCode==39){
+											$this.next();
+										}
+
+									}
+								});
+							}
+
+							$this.thumbBoxInitImageIndex =parseInt(i) ;
+
+							$this.SlideFirstImage();
+							//alert(i)
+
+
+
+
+							// ==============================================================================================================
+							// ==============================================================================================================
+						})
+					})(i)
+				}
+
+
+
+
+
+			}else{
+
+
+
+
+				//   		$(this.container).css({
+				//			"position":"relative",
+				//			"overflow":"hidden",
+				//			'z-index': this.options.baseZIndex
+				//		})
+
+
+				//var tempcontainerWidth = $($this.NonSlidecontainer).width();
+				//var tempcontainerHeight = $($this.NonSlidecontainer).height();
+
+				$this.container = $('<div class="oSlideContainer"></div>').css({
+					"position":"absolute",
+					"overflow":"hidden",
+					'z-index': this.options.baseZIndex+1
+				});
+				$($this.NonSlidecontainer).append($this.container);
+
+
+				// resize
+				//this.resize();
+				$(window).resize(function(){
+					clearTimeout ($this.resizeTimeout);
+					$this.resizeTimeout = setTimeout(function(){
+						//alert("rees")
+						$this.resize();
+						$this.reloadImage();
+					}, 300);
+
+
+				})
+
+				// action keys, only in fullscreen
+				if($this.options.enableKeys == true){
+					$(document).keydown(function(e){
+						if($this.isFullScreen == true){
+							if (e.keyCode==27){
+								$this.exitFullScreen();
+							}
+							if (e.keyCode==37){
+								$this.previous();
+							}
+							if (e.keyCode==39){
+								$this.next();
+							}
+
 						}
-						if (e.keyCode==37){
-							$this.previous();
-						}
-						if (e.keyCode==39){
-							$this.next();
-						}
+					});
+				}
 
+				// show loading animation
+				this.showLoading();
+
+
+				// pause Resume control
+
+				//if ($this.options.FullScreenPause == true  && $this.isFullScreen == true) {
+				//
+				//
+				//}
+				$this.container.hover(function(){
+
+					$this.containerHasMouse = true;
+					if ($this.isFullScreen == true) {
+						if ($this.options.FullScreenPause == true) {
+							$this.pause();
+						}
+					}else{
+						if ($this.options.allowPause == true) {
+							$this.pause();
+						}
+					}
+
+
+				}, function(){
+
+
+					$this.containerHasMouse = false;
+					if ($this.isFullScreen == true) {
+						if ($this.options.FullScreenPause == true) {
+							$this.resume();
+						}
+					}else{
+						if ($this.options.allowPause == true) {
+							$this.resume();
+						}
 					}
 				});
 
-
-			}
-
-			// show loading animation
-			this.showLoading();
-
-
-			// pause Resume control
-
-			//if ($this.options.FullScreenPause == true  && $this.isFullScreen == true) {
-			//
-			//
-			//}
-			$this.container.hover(function(){
-
-				$this.containerHasMouse = true;
-				if ($this.isFullScreen == true) {
-					if ($this.options.FullScreenPause == true) {
-						$this.pause();
-					}
-				}else{
-					if ($this.options.allowPause == true) {
-						$this.pause();
-					}
+				if($this.containerHasMouse == true){
+					$this.pause();
+					alert("pause")
 				}
 
+				this.imgLength =  $(this.options.images).size();
 
-			}, function(){
-
-
-				$this.containerHasMouse = false;
-				if ($this.isFullScreen == true) {
-					if ($this.options.FullScreenPause == true) {
-						$this.resume();
-					}
+				if (this.imgLength == 1) {
+					//only one image
+				}else if (this.imgLength > 1) {
+					//more than one image
+					$this.SlideFirstImage();
 				}else{
-					if ($this.options.allowPause == true) {
-						$this.resume();
-					}
+					$this.consoleOut("ERROR: No images declarated, hidding the divs!")
+					$(this.NonSlidecontainer).remove();
 				}
-			});
-
-			if($this.containerHasMouse == true){
-				$this.pause();
-				alert("pause")
-			}
-
-			this.imgLength =  $(this.options.images).size();
-
-			if (this.imgLength == 1) {
-				//only one image
-			}else if (this.imgLength > 1) {
-				//more than one image
-				$this.SlideFirstImage();
-			}else{
-				$this.consoleOut("ERROR: No images declarated, hidding the divs!")
-				$(this.NonSlidecontainer).remove();
 			}
 		}, // end of constructor
 
@@ -352,24 +439,23 @@ function dump(arr,level) {
 //
 //───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 		next : function(){
+			this.clear();
 			this.mainLoop("+1");
 		},
 
 		previous : function(){
-
+			this.clear();
 			this.mainLoop("-1");
 		},
 
 		goTo : function(i){
-
+			this.clear();
 			this.mainLoop(i);
 		},
 
-		reloadThisImage : function(){
-			this.SlideNext("-2");
-		},
-
-
+		//reloadThisImage : function(){
+		//        this.SlideNext("-2");
+		//},
 //───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 //
 //	resize the elements to propper dimensions
@@ -386,14 +472,20 @@ function dump(arr,level) {
 
 			$this.consoleOut("Method: Resize()");
 
-			if($this.isFullScreen != true){
+			if($this.isFullScreen == true){
+
+				$this.containerWidth = $($this.fulscreenContainer).width() - (parseInt($this.container.css("padding-left")) + parseInt($this.container.css("padding-right")) ) ;
+				$this.containerHeight = $($this.fulscreenContainer).height() - (parseInt($this.container.css("padding-top")) + parseInt($this.container.css("padding-bottom")) ) ;
+				//alert( $this.containerWidth+ " x " + $this.containerHeight)
+			}else{
 				$this.containerWidth = $($this.NonSlidecontainer).width();
 				$this.containerHeight = $($this.NonSlidecontainer).height();
-				$this.container.width($this.containerWidth).height($this.containerHeight)
-			}else{
-				$this.containerWidth = $(this.container).width();
-				$this.containerHeight = $(this.container).height();
+
 			}
+
+			$this.container.width($this.containerWidth).height($this.containerHeight);
+			$this.oSlideImageContainer.width($this.containerWidth).height($this.containerHeight);
+
 
 			if($this.nextButton != false){
 				$this.nextButton.height(this.containerHeight).css({'z-index': this.options.baseZIndex+10 ,postion:"absolute",top:0,right:0}).find("div").css({"top": ( (this.containerHeight /2 )-30 ) });
@@ -608,15 +700,25 @@ function dump(arr,level) {
 
 			if(this.options.alwaysSowNavigationControls != true){
 				if($this.options.allowFullScreen == true){
-					$zoomButton.hide();
+					setTimeout(function(){
+						$zoomButton.fadeOut();
+					},500)
+
 					$this.container.hover(function(){
 						$zoomButton.stop(true,true).fadeIn();
 					}, function(){
 						$zoomButton.stop(true,true).fadeOut();
 					});
 				}
-				$this.nextButton.hide();
-				$this.prewButton.hide();
+
+
+
+				setTimeout(function(){
+					$this.nextButton.fadeOut();
+					$this.prewButton.fadeOut();
+				},500)
+
+
 				$this.container.hover(function(){
 
 					$this.nextButton.stop(true,true).fadeIn();
@@ -639,9 +741,18 @@ function dump(arr,level) {
 			var $this = this;
 			$this.consoleOut("Method: SlideFirstImage()" );
 
+			if($this.thumbBoxInitImageIndex != false){
+				$this.nextImageIndex = $this.thumbBoxInitImageIndex;
+			}else{
+				$this.nextImageIndex = 0;
+			}
 
-			$this.nextImageIndex = 0;
 			$this.currentImageIndex = -1;
+
+			$this.oSlideImageContainer = $('<div id="oSlideImageContainer"></div>');
+			$this.container.append($this.oSlideImageContainer)
+
+			$this.resize();
 
 			$this.imagePreload(function(){
 				$this.showFirstImage(function(){
@@ -926,7 +1037,7 @@ function dump(arr,level) {
 			}else{
 				img.stop();
 
-				if( ($this.isFullScreen == false &&  FillInWindowScreen == true) || ($this.isFullScreen == true && $this.options.FillInFullScreen == true)){
+				if( ($this.isFullScreen == false &&  $this.options.FillInFullScreen == true) || ($this.isFullScreen == true && $this.options.FillInFullScreen == true)){
 					img.width(sizes.w).height(sizes.h);
 					img.css({  top : sizes.c.top, left:sizes.c.left });
 				}else{
@@ -979,7 +1090,7 @@ function dump(arr,level) {
 				switch ($this.options.openingAnimation){
 					case "fade":
 						// TODO -> repasar, basandose en TV
-						$($this.container).append(div);
+						$this.oSlideImageContainer.append(div);
 						var img = $(div).find("img").first().css({position:"absolute"});
 						$this.addOutLink(img);
 						div.css({opacity: 0}).animate({   opacity: 1  },$this.options.imageAnimationInSpeed).queue(
@@ -992,7 +1103,7 @@ function dump(arr,level) {
 						showTitles();
 						break;
 					case "TV":
-						$($this.container).append(div);
+						$this.oSlideImageContainer.append(div);
 						var img = $(div).find("img").first().css({position:"absolute"});
 						$this.addOutLink(img);
 
@@ -1101,7 +1212,7 @@ function dump(arr,level) {
 					case "slideright":
 
 						$this.removeTitles();
-						$($this.container).append(div);
+						$this.oSlideImageContainer.append(div);
 
 						var remove = currentDiv;
 						var img = $(div).find("img").first().css({position:"absolute"});
@@ -1422,6 +1533,7 @@ function dump(arr,level) {
 //───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 		pause:function(){
 			var $this = this;
+			this.consoleOut("Method: pause() ");
 			if($this.options.allowPause == true){
 				if($this.mainLoopTimer != false){
 					$this.mainLoopTimer.pause();
@@ -1444,6 +1556,7 @@ function dump(arr,level) {
 //───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 		clear:function(){
 			var $this = this;
+			this.consoleOut("Method: clear() ");
 			if($this.options.allowPause == true){
 				if($this.mainLoopTimer != false){
 					$this.mainLoopTimer.clear();
@@ -1468,6 +1581,7 @@ function dump(arr,level) {
 
 		resume: function(){
 			var $this = this;
+			this.consoleOut("Method: Resume() ");
 			if($this.options.allowPause == true){
 				if($this.mainLoopTimer != false){
 					$this.mainLoopTimer.resume();
@@ -1509,9 +1623,10 @@ function dump(arr,level) {
 
 			$this.fulscreenContainer = $('<div id="oslideFullScreenContainer" style="position:fixed;top:0px;left:0px;width:100%;height:100%;z-index:'+ parseFloat($this.options.baseZIndex + 10 )+'"></div>');
 			$($this.fulscreenContainer).css({'background':"black"})
+
 			$('body').prepend($this.fulscreenContainer);
 			$($this.fulscreenContainer).append($this.container).addClass("oSlideFullScreen");
-			$($this.container).css({"width":"100%","height":"100%"});
+			//$($this.container).css({"width":"100%","height":"100%"});
 
 
 
@@ -1564,6 +1679,42 @@ function dump(arr,level) {
 			});
 
 		},
+//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+//
+//	Exit the fullscreen mode when in lightbox mode
+//
+//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+		exitLighboxmode : function(){
+			this.consoleOut("Exit Lihhtbox mode");
+
+			//var imgDiv = this.options.images[this.nextImageIndex]["imgdiv"];
+			//if (this.isInImageTransition == true) {
+			//    $(this.options.images[this.currentImageIndex]["div"]).remove();
+			//    $(imgDiv).stop(true,true);
+			//    this.isInImageTransition = false;
+			//}
+
+			var $this = this;
+			$this.isFullScreen = false;
+			$('body').css({"overflow":""});
+			$($this.container).remove();
+			$this.clear();
+			//$($this.fulscreenContainer).remove();
+			//$($this.NonSlidecontainer).append($this.container);
+
+
+//			var tempcontainerWidth = $($this.NonSlidecontainer).width();
+//			var tempcontainerHeight = $($this.Originalcontainer).height();
+//
+//                        $($this.container).width(tempcontainerWidth).height(tempcontainerHeight);
+
+//
+//			$this.resize(function(){
+//                            $this.reloadImage();
+//                        });
+		},
+
 
 //───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 //
@@ -1623,7 +1774,7 @@ function dump(arr,level) {
 					function() {
 
 						$(this).remove();
-						$($this.container).append(div);
+						$this.oSlideImageContainer.append(div);
 
 						var img = $(div).find("img").first().css({position:"absolute"});
 						$this.addOutLink(img);
@@ -1662,6 +1813,7 @@ function dump(arr,level) {
 		var elementLength = $(this).length;
 
 
+
 		if (!elementLength) {
 			return this;
 		}else if(elementLength == 1){
@@ -1680,6 +1832,7 @@ function dump(arr,level) {
 
 
 		}else if(elementLength > 1){
+
 			// ejecutar oslide con imagesnes como parametros
 			var elementGroups = {};
 			$(this).each(function(){
@@ -1701,29 +1854,52 @@ function dump(arr,level) {
 
 			});
 
-			for(var j in elementGroups){
+			if(options.lightboxFunction == true){
+				for(var j in elementGroups){
 
-				var opts = {
-					images:elementGroups[j]
+					var opts = {
+						images:elementGroups[j]
+					}
+					$.extend(opts,options);
+
+					var container = $('<div class="oSlideLightboxModeContainer"></div>');
+					$("body").append(container);
+
+					// Return early if this element already has a plugin instance
+					if (container.data('oSlideObj')) return;
+
+					// pass options to plugin constructor
+					var myoSlide = new oSlide(container, opts); /// odo sustituir this por element
+
+					// Store plugin object in this element's data
+					container.data('oSlideObj', myoSlide);
 				}
-				$.extend(opts,options);
+			}else{
 
-				var container = false;
-				if(typeof(opts["container"]) != "undefined"){
-					container = $(opts["container"]);
-				}else{
-					container = $(elementGroups[j][0]["obj"]).parent().empty();
+				for(var j in elementGroups){
+
+					var opts = {
+						images:elementGroups[j]
+					}
+					$.extend(opts,options);
+
+					var container = false;
+					if(typeof(opts["container"]) != "undefined"){
+						container = $(opts["container"]);
+					}else{
+						container = $(elementGroups[j][0]["obj"]).parent().empty();
+					}
+
+					// Return early if this element already has a plugin instance
+					if (container.data('oSlideObj')) return;
+
+					// pass options to plugin constructor
+					var myoSlide = new oSlide(container, opts); /// odo sustituir this por element
+
+					// Store plugin object in this element's data
+					container.data('oSlideObj', myoSlide);
 				}
-
-				// Return early if this element already has a plugin instance
-				if (container.data('JsObj')) return;
-				// pass options to plugin constructor
-				var myplugin = new oSlide(container, opts); /// odo sustituir this por element
-
-				// Store plugin object in this element's data
-				container.data('JsObj', myplugin);
 			}
-
 		}
 	};
 })(jQuery);
