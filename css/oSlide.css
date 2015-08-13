@@ -122,17 +122,6 @@ text-decoration:none;
 	text-align:center;
 	height:14px;
 	bottom:	-20px;
-/* 	top:0px; */
-
-/* background-color:blue; */
-	/* caption opacity*/
-/* 	filter:alpha(opacity=60); */
-/*         -moz-opacity:0.6; */
-/*         -khtml-opacity: 0.6; */
-/*         opacity: 0.6; */
-
-
-
 }
 
 .oSlideNavigationElement{
@@ -225,78 +214,3 @@ left:0px;
 #oSlidePrewNavigation  div:hover {
     	background-position: 40px 2px;
 }
-
-/* ############################################################################################################################3 */
-/* ##    oSlide2 modifications */
-/* ############################################################################################################################3 */
-
-
-
-
-#oSlide2{
-margin-bottom:10px;
-
-}
-
-
-#oSlide2 #oSlideNavigation{
-	display:none;
-	position:absolute;
-	width:100%;
-	z-index: 1105;
-	text-align:right;
-	height:14px;
-	bottom:	9px;
-/* 	top:0px; */
-
-
-
-
-}
-
-#oSlide2 .oSlideNavigationElement{
-width:11px;
-height:11px;
-
-display:inline-block;
-       zoom: 1; /* IE7 (hasLayout)*/
-       *display: inline; /* IE */
-
-margin:5px;
-cursor:pointer;
-background-image:none;
-background-color:white;
-
-
-border:1px solid grey;
-
-
-	filter:alpha(opacity=70);
-        -moz-opacity:0.7;
-        -khtml-opacity: 0.7;
-        opacity: 0.7;
-
-
-
-}
-
-
-#oSlide2 .oSlideNavigationElement span{
-display:none;
-}
-
-
-#oSlide2 .oSlideNavigationActiveElement {
-background-color:#C82C63;
-border:1px solid white;
-
-cursor:default;
-/* width:40px; */
-}
-
-.oSlideFadeColorBackround2{
-background:#C82C63;
-
-}
-
-
