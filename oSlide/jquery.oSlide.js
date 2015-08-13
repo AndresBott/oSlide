@@ -5,7 +5,7 @@
  * Copyright (c) 2011 Andrés Bott
  * Examples and documentation at: http://andresbott.com or http://oslide.andresbott.com
  *
- * Version: 1.0.3
+ * Version: 1.0.5
  * Developed with: jQuery v1.6
  *
  * licensed under the LGPL license:
@@ -19,7 +19,7 @@
  *
  *  $(document).ready(function() {
  *      $("#oSlideContainer").oSlide({options:"go here"});  // call the plugin
- *  
+ *
  *      var myplugin = $("#oSlideContainer").data('JsObj');  // get the plugin object instance
  *
  *      myplugin.publicMethod(); // cals a public method
@@ -47,7 +47,7 @@ function dump(arr,level) {
 	var level_padding = "";
 	for(var j=0;j<level+1;j++) level_padding += "    ";
 
-	if(typeof(arr) == 'object') { //Array/Hashes/Objects 
+	if(typeof(arr) == 'object') { //Array/Hashes/Objects
 		for(var item in arr) {
 			var value = arr[item];
 
@@ -65,33 +65,53 @@ function dump(arr,level) {
 }
 
 
+
+
+// TODO
+// añadir funcion random para las animaciones de cambio de imagen
+// comprobar que funcione solo con una imagen
+// si al iniciar el slider tiene el mouse sobre si, monstrar los controles (sin tner que salir y entrar)
+// falta el codigo de titulo y descripcion (mostrar y ocultar)
+// en resize, comprobar tamaño anterior al tamaño nuevo para saber si hace falta recargar la imagen
+// ken burn no funciona en full screen
+// goto ID tiene fallos si se llama repetidamente sobre la misma imagen
+
+
+
 (function($){
 	var oSlide = function($container,$settings){
-
-
 		var defaults = {
 			debug:false,
 			baseZIndex : 600,
 
+			//=======    Loading   =========//
+			loadingAnimationSpeed:1800,
 
-			loadingAnimationSpeed:1200,
-			loadingAnimationImages:12,
 
+			//=======    Callbacks  =========//
+			afterMainLoopStarted:false,
+			afterResize:false,
+
+
+			//=======    FullScreen Controls  =========//
+			allowFullScreen : true,
+			FillInFullScreen : false,
+			KenBurnsInFullScreen : true,
+			enableKeys : true,
+			FullScreenPause:false,
+
+			//=======    Controls  =========//
 			enableNavigationControls:true,
 			alwaysSowNavigationControls:false,
-			allowFullScreen : true,
+			FillInWindowScreen : true,
+			allowPause: true,
 
-			thumbnails : false,
-			thumbSize : 150,
-			thumbNumber:4,// how many thumbnaisl to show as max
-
-
-
+			kenBurns:35, // 0 to deactivate
+			kenburnAnimationTime:false, // time the ken burn animation takes
+			kenburnsEasing:"linear", // linear - tipe of ken burn easing
 
 			timeBetweenAnimations:6000,
-			kenBurns:35, // 0 to deactivate
-			images : false,
-			openingAnimation:"TV",
+
 			imageAnimation: "fade",
 			imageAnimationSpeed:1000,
 			imageAnimationInSpeed:false,
@@ -101,40 +121,20 @@ function dump(arr,level) {
 			titleAnimationSpeed:1000,
 			titleAnimationInSpeed:false,
 			titleAnimationOutSpeed:false,
-			titleAnimationTimeOut:400,
-			titleTimeBeforeHide:5000,
+			titleAnimationTimeOut:1000,
+			titleAnimationBeforeTimeOut:1000, // millisecongs the title hides before the image
 
 			descriptionAnimation:"fade",
 			descriptionAnimationSpeed:1000,
 			descriptionAnimationInSpeed:false,
 			descriptionAnimationOutSpeed:false,
 			descriptionAnimationTimeOut:550,
-			descriptionTimeBeforeHide:4800,
+			descriptionAnimationBeforeTimeOut:500, // millisecongs the description hides before the image
 
-			captionAnimation:"fade",
-			captionAnimationSpeed:550,
-
-			// fullscreen options
-			FStimeBetweenAnimations:6000,
-			FSkenBurns:0, // 0 to deactivate
-			FSimageAnimation: "fade",
-			FSimageAnimationSpeed:1000,
-			FSimageAnimationInSpeed:false,
-			FSimageAnimationOutSpeed:false,
-
-			FsdescriptionAnimation:"fade",
-			FsdescriptionAnimationSpeed:1000,
-			FsdescriptionAnimationInSpeed:false,
-			FsdescriptionAnimationOutSpeed:false,
-			FsdescriptionAnimationTimeOut:550,
-			FsdescriptionTimeBeforeHide:4800,
-
-			FscaptionAnimation:"fade",
-			FscaptionAnimationSpeed:550,
-
-
-
+			//=======    Showing images  =========//
+			openingAnimation: "TV", // fade, TV
 		};
+
 		var $settings = $.extend(defaults, $settings);
 
 		//=======   Some setting adjustements  =========//
@@ -145,7 +145,6 @@ function dump(arr,level) {
 			$settings.imageAnimationOutSpeed = $settings.imageAnimationSpeed;
 		}
 
-
 		if($settings.titleAnimationInSpeed == false){
 			$settings.titleAnimationInSpeed = $settings.titleAnimationSpeed;
 		}
@@ -153,175 +152,56 @@ function dump(arr,level) {
 			$settings.titleAnimationOutSpeed = $settings.titleAnimationSpeed;
 		}
 
-
 		if($settings.descriptionAnimationInSpeed == false){
 			$settings.descriptionAnimationInSpeed = $settings.titleAnimationSpeed;
 		}
 		if($settings.descriptionAnimationOutSpeed == false){
 			$settings.descriptionAnimationOutSpeed = $settings.titleAnimationSpeed;
 		}
+		if($settings.timeBetweenAnimations == false){
+
+			$settings.timeBetweenAnimations =  50000000000000000;
+
+		}
+		if($settings.kenburnAnimationTime == false){
+			$settings.kenburnAnimationTime =  $settings.timeBetweenAnimations + $settings.imageAnimationInSpeed;
+		}
+
+
+
 		//=======    internal usage Vars  =========//
-		this.version = "1.0";
-		this.Originalcontainer = $container // points to the original, in code, defined Container
-		this.container = false; //points to the image container
-		//this.thumbContainer = false // holds the thumbnails contaienr
-		this.loading = false;
-		this.loadingFrame = 0;
-		this.resizeTimeout = 0; // holds the timer for calling the resize method
-		this.reload = false; // used to hide the previous image faster when true (resize method changes this to true)
-		this.isInImageTransition = false;
-		this.thumbPreloadIndex = 0; // witch thumbnail is loading
+		this.version = "1.0.5-devel";
+		this.resizeTimeout = false; // holds a timeout when resizing
+		this.NonSlidecontainer = $container // points to the original, in code, defined Container
+		this.containerWidth = 0	 // container sizes
+		this.containerHeight = 0
+		this.imgLength = 0 // how many images are in the slide
 		this.currentImageIndex = -1;
 		this.nextImageIndex = 0;
-		this.slideStarted = false; // controls if the loop has started
 		this.mainLoopTimer = false; //holds the main timer
-		this.titleTimer = false //holds the title timeout
-		this.descTimer = false // holds the description Timer	
-		this.imgLength = 0; // instance constant to know how many images are defiend
-		this.initialDiv = false // holds the inital div without image;
-		this.containerWidth = 0	 // container sizes		
-		this.containerHeight = 0
-		this.titleTimeout = false;
-		this.descTimeout = false;
-		this.isFullScreen = false; // bolean if we are in full screen or windowed
-		this.fulscreenContainer = false; // holds the container for fullscreen
+		this.tittleTimer = false; // holds the timer fot the title element
+		this.descTimer = false; // holds the timer for the description element
+		this.isInImageTransition = false;
+		this.isLoadingVisible = false; // boolean to know if loading is visible
+		this.containerHasMouse = false; // boolean to know if the mouse is over the container
+		this.isFullScreen = false;
+		this.nextButton = false;  // holds the div with the next image button
+		this.prewButton = false;  // holds the div with the previous image button
+		//this.currentKBanimationType = false; // holds the ken Bruns animation tipe of the curren image
 
-		this.kbStartTime = null // time calculation for ken burns
-
+		//=======    internal usage Vars  =========//
 
 		this.options = $settings;
 		this.constructor();
 	}
 
 	oSlide.prototype = {
-//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-// 																														
-//	Protoptype constructor, the starting point																						
-// 																													
-//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────		   		
-		constructor: function(){
-
-			var $this = this;
-			$(this.container).css({
-				"position":"relative",
-				"overflow":"hidden",
-				'z-index': this.options.baseZIndex
-			})
-
-			var tempcontainerWidth = $($this.Originalcontainer).width();
-			var tempcontainerHeight = $($this.Originalcontainer).height();
-
-			$this.container = $('<div class="oSlideContainer"></div>').width(tempcontainerWidth).height(tempcontainerHeight).css({
-				"position":"absolute",
-				"overflow":"hidden",
-				'z-index': this.options.baseZIndex+1
-			});
-			$($this.Originalcontainer).append($this.container);
-
-			// activating the thumbnails div
-			// thumbnails not implemented yet, so deactivated
-			//if ( (this.options.thumbnails == "r" || this.options.thumbnails == "l" || this.options.thumbnails == "t" || this.options.thumbnails == "b") && (false)){
-
-			// var tempcontainerWidth = $(this.container).width();
-			// var tempcontainerHeight = $(this.container).height();
-//     			
-			// if(this.options.thumbnails == "r" || this.options.thumbnails == "l"){
-			// var restaHor = this.options.thumbSize;
-			// var restaVert = 0;
-			// var thumbContainerWidth = this.options.thumbSize;
-			// var thumbContainerHeight = tempcontainerHeight;
-			// }else{
-			// var restaHor = 0;
-			// var restaVert =    	this.options.thumbSize;
-			// var thumbContainerWidth = tempcontainerWidth;
-			// var thumbContainerHeight = this.options.thumbSize;
-			// }
-//     			
-			// var subContainer = $('<div class="oSlideSubContainer"></div>').width(tempcontainerWidth-restaHor).height(tempcontainerHeight - restaVert).css({
-			// "position":"absolute",
-			// "overflow":"hidden",
-			// 'z-index': this.options.baseZIndex+1
-			// });
-// 
-//     		
-			// this.thumbContainer = $('<div class="oSlideThubsContainer"></div>').width(thumbContainerWidth).height(thumbContainerHeight).css({
-			// "position":"absolute",
-			// "overflow":"hidden",
-			// 'z-index': this.options.baseZIndex+1
-			// });
-			// this.container.append(subContainer).append(this.thumbContainer);
-			// this.container = subContainer;
-//     			
-//     			
-			// if(this.options.thumbnails == "l"){
-			// subContainer.css("right",0);
-			// }else if(this.options.thumbnails == "r"){
-			// this.thumbContainer.css("right",0);
-			// }else if(this.options.thumbnails == "t"){
-			// subContainer.css("bottom",0);
-			// }else{
-			// this.thumbContainer.css("bottom",0);
-			// }
-
-
-
-			//}
-
-
-
-			// resize TODO improve
-			this.resize();
-			$this.reload = false;
-			$(window).resize(function(){
-
-
-				clearTimeout ($this.resizeTimeout);
-				$this.resizeTimeout = setTimeout(function(){
-					//alert("rees")
-					$this.resize();
-				}, 400);
-
-
-			})
-
-
-
-
-
-
-			// show loading animation
-			this.showLoading();
-
-			this.imgLength =  $(this.options.images).size();
-
-			//this.showThumbNavigationMenu();
-
-			if(this.options.images !=false){
-				// start the loop
-				$this.SlideNext(function(){
-					// after loading the first image, show the navigation controlls as callback function
-					// if(options.enableNavigationBar==true){
-					// showNavigationBar();
-					// }
-
-					if($this.options.enableNavigationControls == true){
-						$this.showNavigationControls();
-					}
-				});
-
-			}else{
-				consoleOut("ERROR: No images declarated, hidding the divs!")
-				$(this.container).remove();
-			}
-
-		},
-
 
 //───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-// 																														
-//	Log some info to the browser consoloe																					
-// 																													
-//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────		    	
+//
+//	Log some info to the browser console (delete for final version)
+//
+//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 		consoleOut:function (message,type){
 			var extendText = "oSlide: ";
 			if(typeof(message) == 'undefined'){
@@ -331,9 +211,7 @@ function dump(arr,level) {
 				if(typeof(type) == 'undefined'){
 					type = "log";
 				}
-
 				switch (type){
-
 					case "warn":
 						console.warn(extendText+message);
 						break;
@@ -345,338 +223,487 @@ function dump(arr,level) {
 					default:
 						console.log(extendText+message);
 						break;
-
 				}
 			}
 		},
 
-//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-// 																														
-//	Starts the loading animation																						
-// 																													
-//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────		
-		showLoading : function (){
-			this.consoleOut("method: showLoading() ");
 
+
+
+//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+//
+//	Protoptype constructor, the starting point
+//
+//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+		constructor: function(){
 			var $this = this;
 
-			this.loading_point1 = $('<div class="oSlide-loading" style="z-index:'+ parseFloat(this.options.baseZIndex + 1 )+';" ></div>').css({
-				position: "absolute",
-				//display : "none",
-				opacity:0,
-				width: "12px",
-				height:"12px",
-				//background: "silver",
-				borderRadius:200,
+			//   		$(this.container).css({
+			//			"position":"relative",
+			//			"overflow":"hidden",
+			//			'z-index': this.options.baseZIndex
+			//		})
+
+
+			//var tempcontainerWidth = $($this.NonSlidecontainer).width();
+			//var tempcontainerHeight = $($this.NonSlidecontainer).height();
+
+			$this.container = $('<div class="oSlideContainer"></div>').css({
+				"position":"absolute",
+				"overflow":"hidden",
+				'z-index': this.options.baseZIndex+1
+			});
+			$($this.NonSlidecontainer).append($this.container);
+
+
+			// resize
+			this.resize();
+			$(window).resize(function(){
+				clearTimeout ($this.resizeTimeout);
+				$this.resizeTimeout = setTimeout(function(){
+					//alert("rees")
+					$this.resize();
+					$this.reloadImage();
+				}, 300);
 
 
 			})
 
-			this.loading_point2 = $this.loading_point1.clone().css({left:(this.containerWidth/2) -8});
-			this.loading_point3 = $this.loading_point1.clone().css({left:(this.containerWidth/2) +12});
-			this.loading_point4 = $this.loading_point1.clone().css({left:(this.containerWidth/2) +32});
+			// action keys, only in fullscreen
+			if($this.options.enableKeys == true){
+				$(document).keydown(function(e){
+					if($this.isFullScreen == true){
+						if (e.keyCode==27){
+							$this.exitFullScreen();
+						}
+						if (e.keyCode==37){
+							$this.previous();
+						}
+						if (e.keyCode==39){
+							$this.next();
+						}
+
+					}
+				});
 
 
-
-			$(this.container).append($this.loading_point1).append($this.loading_point2).append($this.loading_point3).append($this.loading_point4);
-
-
-			function animateLoading(){
-
-				setTimeout(function(){$this.loading_point1.css({
-					left:($this.containerWidth/2) - 33,
-					top: ($this.containerHeight/2) - 13,
-					width:"24px",
-					height:"24px",
-					opacity:0
-				}).animate({
-					left:($this.containerWidth/2) -28,
-					top: ($this.containerHeight/2) -8,
-					width:"12px",
-					height:"12px",
-					opacity:1
-				},$this.options.loadingAnimationSpeed/4).animate({opacity:0},$this.options.loadingAnimationSpeed/4); },0);
-
-				setTimeout(function(){$this.loading_point2.css({
-					left:($this.containerWidth/2) - 13,
-					top: ($this.containerHeight/2) - 13,
-					width:"24px",
-					height:"24px",
-					opacity:0
-				}).animate({
-					left:($this.containerWidth/2) -8,
-					top: ($this.containerHeight/2) -8,
-					width:"12px",
-					height:"12px",
-					opacity:1
-				},$this.options.loadingAnimationSpeed/4).animate({opacity:0},$this.options.loadingAnimationSpeed/4);},$this.options.loadingAnimationSpeed/8);
-
-				setTimeout(function(){$this.loading_point3.css({
-					left:($this.containerWidth/2) +7,
-					top: ($this.containerHeight/2) - 13,
-					width:"24px",
-					height:"24px",
-					opacity:0
-				}).animate({
-					left:($this.containerWidth/2) + 12,
-					top: ($this.containerHeight/2) -8,
-					width:"12px",
-					height:"12px",
-					opacity:1
-				},$this.options.loadingAnimationSpeed/4).animate({opacity:0},$this.options.loadingAnimationSpeed/4);},($this.options.loadingAnimationSpeed/8) * 2);
-
-
-				setTimeout(function(){$this.loading_point4.css({
-					left:($this.containerWidth/2) +27,
-					top: ($this.containerHeight/2) - 13,
-					width:"24px",
-					height:"24px",
-					opacity:0
-				}).animate({
-					left:($this.containerWidth/2) + 32,
-					top: ($this.containerHeight/2) -8,
-					width:"12px",
-					height:"12px",
-					opacity:1
-				},$this.options.loadingAnimationSpeed/4).animate({opacity:0},$this.options.loadingAnimationSpeed/4);},($this.options.loadingAnimationSpeed/8) * 3);
-
-				// $this.loading.animate({top: ( ($this.containerHeight/2) + 20) +"px" },$this.options.loadingAnimationSpeed/2).queue(function(){
-				// $this.loading.animate({top:($this.containerHeight/2) - 8},$this.options.loadingAnimationSpeed/2);
-				// $this.loading.dequeue();
-				// });
 			}
 
-			animateLoading();
+			// show loading animation
+			this.showLoading();
 
-			if(typeof($this.loadingTimer)!="undefined"){
-				clearInterval($this.loadingTimer);
+
+			// pause Resume control
+
+			//if ($this.options.FullScreenPause == true  && $this.isFullScreen == true) {
+			//
+			//
+			//}
+			$this.container.hover(function(){
+
+				$this.containerHasMouse = true;
+				if ($this.isFullScreen == true) {
+					if ($this.options.FullScreenPause == true) {
+						$this.pause();
+					}
+				}else{
+					if ($this.options.allowPause == true) {
+						$this.pause();
+					}
+				}
+
+
+			}, function(){
+
+
+				$this.containerHasMouse = false;
+				if ($this.isFullScreen == true) {
+					if ($this.options.FullScreenPause == true) {
+						$this.resume();
+					}
+				}else{
+					if ($this.options.allowPause == true) {
+						$this.resume();
+					}
+				}
+			});
+
+			if($this.containerHasMouse == true){
+				$this.pause();
+				alert("pause")
 			}
-			$this.loadingTimer = setInterval(function(){ animateLoading() } , this.options.loadingAnimationSpeed);
 
+			this.imgLength =  $(this.options.images).size();
+
+			if (this.imgLength == 1) {
+				//only one image
+			}else if (this.imgLength > 1) {
+				//more than one image
+				$this.SlideFirstImage();
+			}else{
+				$this.consoleOut("ERROR: No images declarated, hidding the divs!")
+				$(this.NonSlidecontainer).remove();
+			}
+		}, // end of constructor
+
+//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+//
+//	Navigation Contorls and more public methods
+//
+//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+		next : function(){
+			this.mainLoop("+1");
+		},
+
+		previous : function(){
+
+			this.mainLoop("-1");
+		},
+
+		goTo : function(i){
+
+			this.mainLoop(i);
+		},
+
+		reloadThisImage : function(){
+			this.SlideNext("-2");
 		},
 
 
 //───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-// 																														
-//	Stops the loading animation																							
-// 																														
+//
+//	resize the elements to propper dimensions
+//
+//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+		resize : function(ßcallback){
+			var $this = this;
+
+			// resize when loading is visible
+			if (this.isLoadingVisible == true) {
+				this.hideLoading();
+				this.showLoading();
+			}
+
+			$this.consoleOut("Method: Resize()");
+
+			if($this.isFullScreen != true){
+				$this.containerWidth = $($this.NonSlidecontainer).width();
+				$this.containerHeight = $($this.NonSlidecontainer).height();
+				$this.container.width($this.containerWidth).height($this.containerHeight)
+			}else{
+				$this.containerWidth = $(this.container).width();
+				$this.containerHeight = $(this.container).height();
+			}
+
+			if($this.nextButton != false){
+				$this.nextButton.height(this.containerHeight).css({'z-index': this.options.baseZIndex+10 ,postion:"absolute",top:0,right:0}).find("div").css({"top": ( (this.containerHeight /2 )-30 ) });
+				$this.prewButton.height(this.containerHeight).css({'z-index': this.options.baseZIndex+10 ,postion:"absolute",top:0,left:0}).find("div").css({"top": ( (this.containerHeight /2 )-30 ) });
+
+			}
+
+
+
+			if (typeof($this.options.afterResize)== "function") {
+				$this.options.afterResize();
+			}
+			if (typeof(ßcallback)== "function") {
+				ßcallback();
+			}
+
+			//if($this.currentImageIndex >= 0){
+			//$this.reload();
+			//$this.reloadThisImage();
+			//$this.goTo("-2")
+			//var curImgSize = this.getImageResize($this.currentImageIndex);
+			//alert(dump(curImgSize))
+			//$($this.options.images[$this.currentImageIndex]["img"]).width(curImgSize.w).height(curImgSize.h);
+			//}
+
+
+		},
+
+//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+//
+//	Starts the loading animation
+//
+//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+		showLoading : function (){
+			if (this.isLoadingVisible == false){
+				this.consoleOut("method: showLoading() ");
+				this.isLoadingVisible = true;
+
+				var $this = this;
+
+				$this.loadingContainer = $('<div class="oSlide-loading-container" style="z-index:'+ parseFloat(this.options.baseZIndex + 1 )+';"> </div>');
+				$(this.container).append(this.loadingContainer);
+
+
+				this.loading_point1 = $('<div class="oSlide-loading"></div>').css({
+					position: "absolute",
+					//display : "none",
+					opacity:0,
+					width: "12px",
+					height:"12px",
+					//background: "silver",
+					borderRadius:200,
+				})
+
+				this.loading_point2 = $this.loading_point1.clone().css({left:(this.containerWidth/2) -8});
+				this.loading_point3 = $this.loading_point1.clone().css({left:(this.containerWidth/2) +12});
+				this.loading_point4 = $this.loading_point1.clone().css({left:(this.containerWidth/2) +32});
+
+
+				$(this.loadingContainer).append($this.loading_point1).append($this.loading_point2).append($this.loading_point3).append($this.loading_point4);
+
+				function animateLoading(){
+					setTimeout(function(){$this.loading_point1.css({
+						left:($this.containerWidth/2) - 33,
+						top: ($this.containerHeight/2) - 13,
+						width:"24px",
+						height:"24px",
+						opacity:0
+					}).animate({
+						left:($this.containerWidth/2) -28,
+						top: ($this.containerHeight/2) -8,
+						width:"12px",
+						height:"12px",
+						opacity:1
+					},$this.options.loadingAnimationSpeed/4).animate({opacity:0},$this.options.loadingAnimationSpeed/4); },0);
+
+					setTimeout(function(){$this.loading_point2.css({
+						left:($this.containerWidth/2) - 13,
+						top: ($this.containerHeight/2) - 13,
+						width:"24px",
+						height:"24px",
+						opacity:0
+					}).animate({
+						left:($this.containerWidth/2) -8,
+						top: ($this.containerHeight/2) -8,
+						width:"12px",
+						height:"12px",
+						opacity:1
+					},$this.options.loadingAnimationSpeed/4).animate({opacity:0},$this.options.loadingAnimationSpeed/4);},$this.options.loadingAnimationSpeed/8);
+
+					setTimeout(function(){$this.loading_point3.css({
+						left:($this.containerWidth/2) +7,
+						top: ($this.containerHeight/2) - 13,
+						width:"24px",
+						height:"24px",
+						opacity:0
+					}).animate({
+						left:($this.containerWidth/2) + 12,
+						top: ($this.containerHeight/2) -8,
+						width:"12px",
+						height:"12px",
+						opacity:1
+					},$this.options.loadingAnimationSpeed/4).animate({opacity:0},$this.options.loadingAnimationSpeed/4);},($this.options.loadingAnimationSpeed/8) * 2);
+
+
+					setTimeout(function(){$this.loading_point4.css({
+						left:($this.containerWidth/2) +27,
+						top: ($this.containerHeight/2) - 13,
+						width:"24px",
+						height:"24px",
+						opacity:0
+					}).animate({
+						left:($this.containerWidth/2) + 32,
+						top: ($this.containerHeight/2) -8,
+						width:"12px",
+						height:"12px",
+						opacity:1
+					},$this.options.loadingAnimationSpeed/4).animate({opacity:0},$this.options.loadingAnimationSpeed/4);},($this.options.loadingAnimationSpeed/8) * 3);
+
+					// $this.loading.animate({top: ( ($this.containerHeight/2) + 20) +"px" },$this.options.loadingAnimationSpeed/2).queue(function(){
+					// $this.loading.animate({top:($this.containerHeight/2) - 8},$this.options.loadingAnimationSpeed/2);
+					// $this.loading.dequeue();
+					// });
+				}
+
+				animateLoading();
+
+				if(typeof($this.loadingTimer)!="undefined"){
+					clearInterval($this.loadingTimer);
+				}
+				$this.loadingTimer = setInterval(function(){ animateLoading() } , this.options.loadingAnimationSpeed);
+			}else{
+				this.consoleOut("Info: Loading animation already visible ");
+			}
+		},
+
+//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+//
+//	Stops the loading animation
+//
 //───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 		hideLoading : function (){
 
-			this.consoleOut(" method: hideLoading() ");
-			var $this = this;
-
-			this.loading_point1.hide();
-			this.loading_point2.hide();
-			this.loading_point3.hide();
-			this.loading_point4.hide();
-			//this.loading.hide();
-			clearInterval($this.loadingTimer);
+			if(this.isLoadingVisible == true){
+				//var $this = this;
+				this.isLoadingVisible = false;
+				this.consoleOut("Method: hideLoading() -> Hidding Loading Div ");
+				$('.oSlide-loading-container').remove();
+				clearInterval(this.loadingTimer);
+			}else{
+				this.consoleOut("Method: hideLoading() ->  Loading Div alreaddy hidden");
+			}
 		},
 
 //───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-// 																														
-//	Get the size of current image shoud have																								
-// 																													
-//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────		
-		getImageResize : function($index){
+//
+//	Show next and previous arrows
+//
+//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+		showNavigationControls:function (){
+			this.consoleOut("show Navigation Controls");
 
 			var $this = this;
-			var contWidth = this.containerWidth;
-			var contHeight = this.containerHeight;
-			var curImgAspect = $this.options.images[$index]["originalAspectRatio"];
-			var ßresultingHeight = 0;
-			var ßresultingWidth = 0;
-			var ßkresultingHeight = 0;
-			var ßkresultingWidth = 0;
-			var kenBurns = 1 + ($this.options.kenBurns/100);
 
+			$this.nextButton = $('<div id="oSlideNextNavigation" class="oSlideNavigationControl"><div></div></div>')
+			$this.container.append($this.nextButton);
 
+			$this.prewButton = $('<div id="oSlidePrewNavigation" class="oSlideNavigationControl"><div></div></div>')
+			$this.container.append($this.prewButton);
 
-			this.consoleOut("method: Resize!!!! container size= "+contWidth +"x"+contHeight);
+			if($this.options.allowFullScreen == true){
+				var $zoomButton = $('<div id="oSlideZoomButton"></div>');
+				$this.container.append($zoomButton);
+				$zoomButton.css({'z-index': this.options.baseZIndex+10 });
+				$($zoomButton).click(function(){
 
-			if( (contWidth  / contHeight) < curImgAspect ){
-				var adjustedByWidth = false;
-			}else{
-				var adjustedByWidth = true;
+					//$this.reloadImage();
+					if($this.isFullScreen == false){
+						$this.isFullScreen = true;
+						$this.consoleOut("Click on navigation controls Full Screen")
+
+						//$timeLeft = options.sleep
+						//alert("fullScreen");
+						$this.goFullScreen();
+					}else{
+						$this.isFullScreen = false;
+						$this.consoleOut("Click on navigation controls Exit fullScreen")
+						//$timeLeft = options.sleep
+						//alert("fullScreen");
+						$this.exitFullScreen();
+					}
+
+				});
 			}
 
+			$this.nextButton.height(this.containerHeight).css({'z-index': this.options.baseZIndex+10 ,postion:"absolute",top:0,right:0}).find("div").css({"top": ( (this.containerHeight /2 )-30 ) });
+			$this.prewButton.height(this.containerHeight).css({'z-index': this.options.baseZIndex+10 ,postion:"absolute",top:0,left:0}).find("div").css({"top": ( (this.containerHeight /2 )-30 ) });
 
+			$($this.nextButton).click(function(){
+				$this.consoleOut("Click on navigation controls NEXT")
+				//$timeLeft = options.sleep
+				$this.next();
+			});
 
-			if(adjustedByWidth){
-				// adjust image using width as reference	
-				ßkresultingHeight  = ((contWidth * kenBurns) / curImgAspect);
-				ßkresultingWidth = contWidth * kenBurns;
+			$($this.prewButton).click(function(){
+				$this.consoleOut("Click on navigation controls Prew")
+				//$timeLeft = options.sleep
+				$this.previous();
 
-				ßresultingHeight = (contWidth/ curImgAspect);
-				ßresultingWidth = contWidth ;
+			});
 
-				var center = {
-					top: Math.round((-1 * (( ßkresultingHeight - contHeight )/ 2)))+"px",
-					left: Math.round((-1 * (( ßkresultingWidth - contWidth )/ 2)))+"px"
+			if(this.options.alwaysSowNavigationControls != true){
+				if($this.options.allowFullScreen == true){
+					$zoomButton.hide();
+					$this.container.hover(function(){
+						$zoomButton.stop(true,true).fadeIn();
+					}, function(){
+						$zoomButton.stop(true,true).fadeOut();
+					});
 				}
-			}else{
-				// adjust image using height as reference		 	
-				ßkresultingWidth = ((contHeight * kenBurns ) * curImgAspect);
-				ßkresultingHeight  = contHeight * kenBurns;
+				$this.nextButton.hide();
+				$this.prewButton.hide();
+				$this.container.hover(function(){
 
-				ßresultingWidth = (contHeight  * curImgAspect);
-				ßresultingHeight  = contHeight;
+					$this.nextButton.stop(true,true).fadeIn();
+					$this.prewButton.stop(true,true).fadeIn();
+				}, function(){
 
+					$this.nextButton.stop(true,true).fadeOut();
+					$this.prewButton.stop(true,true).fadeOut();
+				});
 			}
-			var center = {
-				ktop: Math.round((-1 * (( ßkresultingHeight - contHeight )/ 2))),
-				kleft: Math.round((-1 * (( ßkresultingWidth - contWidth )/ 2))),
-				top: Math.round((-1 * (( ßresultingHeight - contHeight )/ 2))),
-				left: Math.round((-1 * (( ßresultingWidth - contWidth )/ 2)))
-			}
-			return {w:ßresultingWidth,h:ßresultingHeight,wk:ßkresultingWidth,hk:ßkresultingHeight,c:center};
-
-
-
-
 		},
+
 //───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-// 																														
-//	resize the elements to propper dimensions																									
-// 																													
-//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────		
-		resize : function(){
+//
+//	Load the first Image
+//
+//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+		SlideFirstImage:function(ßcallback){
+
 			var $this = this;
+			$this.consoleOut("Method: SlideFirstImage()" );
 
-			$this.consoleOut("Resieze!!!!!");
-			this.containerWidth = $(this.container).width();
-			this.containerHeight = $(this.container).height();
 
-			//$this.reload = true;
+			$this.nextImageIndex = 0;
+			$this.currentImageIndex = -1;
 
-			if($this.currentImageIndex >= 0){
+			$this.imagePreload(function(){
+				$this.showFirstImage(function(){
+					$this.mainLoop();
+					if(typeof(ßcallback) == "function" ){
+						ßcallback();
+					}
+				});
 
-				//$this.reload();
-				$this.reloadThisImage();
-				//$this.goTo("-2")
-				//var curImgSize = this.getImageResize($this.currentImageIndex);
-				//alert(dump(curImgSize))
-				//$($this.options.images[$this.currentImageIndex]["img"]).width(curImgSize.w).height(curImgSize.h);
+			});
+		},
+		//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+//
+//	adds the link to the image,  used in showFisrtImage and showNextImage
+//
+//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+		addOutLink:function (img){
+			var $this = this;
+			if(typeof($this.options.images[$this.nextImageIndex]["link"]) != "undefined"){
+				var outLink = $this.options.images[$this.nextImageIndex]["link"];
+				var title = $this.options.images[$this.nextImageIndex]["title"];
+				var desc = $this.options.images[$this.nextImageIndex]["desc"];
+
+				img.click(function(){
+					window.location.href = outLink;
+				}).css( 'cursor', 'pointer' );
+
+				$(title).click(function(){
+					window.location.href = outLink;
+				}).css( 'cursor', 'pointer' );
+
+				$(desc).click(function(){
+					window.location.href = outLink;
+				}).css( 'cursor', 'pointer' );
 			}
-
-
-
 		},
 
-
-
-
-
-
 //───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-// 																														
-//	resize the elements to propper dimensions																									
-// 																													
-//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────	
-
-
-
+//
+//	Preloads the next image and executes the callback
+//
 //───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-// 																														
-//	renders the thumbnails navigation menu																									
-// 																													
-//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────		
-		// showThumbNavigationMenu : function(){
-		// var $this = this;
-// 			
-		// var thumbContainerWith = $(this.thumbContainer).width();
-		// var thumbContainerHeith = $(this.thumbContainer).height();
-// 			
-		// //this.options.thumbNumber:4,
-		// $this.thumbPreload();
-		// if(this.imgLength > this.options.thumbNumber){
-		// // More Slides (pictures) as space for them -> make them scrollable
-		// $(this.thumbContainer).html("mas imagenes que miniaturas a mostrar");
-		// }else{
-		// $(this.thumbContainer).html("menos imagenes que miniaturas a mostrar");
-// 				
-		// var singleThumbWidth = Math.floor( thumbContainerWith /  this.options.thumbNumber);
-// 				
-		// var sumThumnbDiference = thumbContainerWith - (singleThumbWidth *  this.options.thumbNumber);
-// 				
-// 				
-		// alert(singleThumbWidth +" "+ thumbContainerWith + " "+ sumThumnbDiference);
-// 				
-// 
-// 			
-		// for (var i = $this.thumbPreloadIndex - 1; i >= 0; i--){
-		// //Things[i]
-		// };
-		// // Less or equal Slides than space for them -> not make them Slide
-// 				
-		// }
-// 			
-// 			
-// 			
-		// //$(this.thumbContainer).html("dddd ancho: "+thumbContainerWith+" alto: "+thumbContainerHeith)
-// 			
-// 			
-// 
-		// },		
-//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-// 																														
-//	Preload the Thumbnails																					
-// 																													
-//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────		
-		// thumbPreload : function(ßcallback){
-		// var $this = this;
-// 			
-		// var index = this.thumbPreloadIndex;
-// 
-		// this.consoleOut("Method: thumbnail preload index "+index  );
-// 
-		// if(  index < ($this.imgLength -1)){
-// 							
-		// $this.options.images[index]["thumbImg"] = new Image();
-// 				
-		// $($this.options.images[index]["thumbImg"]).load(function(){
-		// $this.options.images[index]["thumbLoaded"]=true;
-// 					
-// 					
-		// // calculate and safe the initial aspect Ration and proportions
-		// $(this).removeAttr( "height" ).removeAttr( "width" ).css({"height":"","width":""});
-		// $this.options.images[index]["thumbWidth"] = this.width
-		// $this.options.images[index]["thumbHeight"] = this.height
-		// $this.options.images[index]["thumbOriginalAspectRatio"] = this.width/this.height;
-// 					
-		// if(typeof(ßcallback) == "function"){
-		// ßcallback();
-		// }
-		// $this.thumbPreloadIndex = $this.thumbPreloadIndex + 1 ;
-		// $this.thumbPreload();
-// 					
-		// }).attr("src",this.options.images[index]["thumb"]);
-		// }
-// 
-		// },		
-// 		
-// 		
-//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-// 																														
-//	Preloads the next image and executes the callback																									
-// 																													
-//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────		
 		imagePreload : function (ßcallback){
 
-			this.consoleOut("private method: imagePreload(callback)");
+			this.consoleOut("method: imagePreload(callback)");
 			var $this = this;
 			if( (typeof(this.options.images[this.nextImageIndex]["loaded"]) == "undefined"  ) || (this.options.images[this.nextImageIndex]["loaded"]== false) ){
-				this.showLoading();
+				$this.showLoading();
 
 				this.options.images[this.nextImageIndex]["img"] = new Image();
 
 				$(this.options.images[this.nextImageIndex]["img"]).load(function(){
 					$this.options.images[$this.nextImageIndex]["loaded"]=true;
 
-					var div = $('<div id="img_index_'+$this.nextImageIndex+'"></div>');
-					div.append($this.options.images[$this.nextImageIndex]["img"]);
+					var div = $('<div id="div_index_'+$this.nextImageIndex+'"></div>');
+					var imgDiv = $('<div id="img_index_'+$this.nextImageIndex+'"></div>');
+					div.append(imgDiv);
+					imgDiv.append($this.options.images[$this.nextImageIndex]["img"]);
+
+
 					$this.options.images[$this.nextImageIndex]["div"] = div;
+					$this.options.images[$this.nextImageIndex]["imgdiv"] = imgDiv;
 
 					// calculate and safe the initial aspect Ration and proportions
 					$(this).removeAttr( "height" ).removeAttr( "width" ).css({"height":"","width":""});
@@ -701,10 +728,6 @@ function dump(arr,level) {
 						$this.options.images[$this.nextImageIndex]["title"] = false;
 					}
 
-
-
-
-
 					if(typeof(ßcallback) == "function"){
 						ßcallback();
 					}
@@ -718,247 +741,247 @@ function dump(arr,level) {
 		},
 
 
-
 //───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-// 																														
-//	make the next image visible																				
-// 																													
-//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────    	
-		showNextImage:function(ßcallback){
+//
+//	Get the size of current image shoud have
+//
+//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+		getImageResize : function($index){
 
-			this.consoleOut("Show Next Image method: Current Image = "+ this.currentImageIndex + " Next Image = "+ this.nextImageIndex);
 			var $this = this;
+			var contWidth = this.containerWidth;
+			var contHeight = this.containerHeight;
+			var curImgAspect = $this.options.images[$index]["originalAspectRatio"];
+			var ßresultingHeight = 0;
+			var ßresultingWidth = 0;
+			var ßkresultingHeight = 0;
+			var ßkresultingWidth = 0;
+			var kenBurns = 1 + ($this.options.kenBurns/100);
 
-			var $callback = ßcallback;
-			this.hideLoading();
+			//this.consoleOut("method: Resize!!!! container size= "+contWidth +"x"+contHeight);
 
-			if($this.reload == true){
-				$this.reload = false;
-				//alert("reboot");
-				$($this.options.images[$this.currentImageIndex]["div"]).remove();
-
-			}
-
-			var div = $this.options.images[$this.nextImageIndex]["div"];
-			var sizes = $this.getImageResize($this.nextImageIndex);
-			//alert(dump($this.getImageResize($this.nextImageIndex)));
-
-
-			if(typeof($this.options.images[$this.currentImageIndex]) != "undefined"){
-				var currentDiv = $this.options.images[$this.currentImageIndex]["div"];
-				switchImages()
+			if( (contWidth  / contHeight) < curImgAspect ){
+				var adjustedByWidth = false;
 			}else{
-				//var currentDiv = $this.initialDiv;
-				//showInitialImage();
-				initSwitchImages();
+				var adjustedByWidth = true;
 			}
 
+			if(adjustedByWidth){
+				// adjust image using width as reference
+				ßkresultingHeight  = ((contWidth * kenBurns) / curImgAspect);
+				ßkresultingWidth = contWidth * kenBurns;
 
+				ßresultingHeight = (contWidth/ curImgAspect);
+				ßresultingWidth = contWidth ;
 
+				ßresultingWidthNoFill = (contHeight  * curImgAspect);
+				ßresultingHeightNoFill = contHeight;
 
-			function timeoutToNextImage(){
-				$this.isInImageTransition = false;
-				$this.mainLoopTimer = setTimeout(function(){
-					$callback();
-				}, $this.options.timeBetweenAnimations);
+				ßresultNofillLeft = Math.round(( (( ßresultingHeight - contHeight ))));
+				ßresultNofilltop = 0;
+
+				// var center = {
+				// top: Math.round((-1 * (( ßkresultingHeight - contHeight )/ 2)))+"px",
+				// left: Math.round((-1 * (( ßkresultingWidth - contWidth )/ 2)))+"px"
+				// }
+
+			}else{
+				// adjust image using height as reference
+				ßkresultingWidth = ((contHeight * kenBurns ) * curImgAspect);
+				ßkresultingHeight  = contHeight * kenBurns;
+
+				ßresultingWidth = (contHeight  * curImgAspect);
+				ßresultingHeight  = contHeight;
+
+				ßresultingWidthNoFill = contWidth;
+				ßresultingHeightNoFill = (contWidth / curImgAspect);
+
+				//alert(ßresultingHeightNoFill + " - "+ contHeight)
+				ßresultNofillLeft = 0;
+				ßresultNofilltop = 	Math.round((( -1 * ( ßresultingHeightNoFill - contHeight ))/2 ));
 			}
 
-			function animateKenBurns(img,sizes){
+			var center = {
+				ktop: Math.round((-1 * (( ßkresultingHeight - contHeight )/ 2))),
+				kleft: Math.round((-1 * (( ßkresultingWidth - contWidth )/ 2))),
+				top: Math.round((-1 * (( ßresultingHeight - contHeight )/ 2))),
+				left: Math.round((-1 * (( ßresultingWidth - contWidth )/ 2))),
+				// noFillTop:
+				// noFillLeft:
+			}
 
+			var Nofill = {
+				w:ßresultingWidthNoFill,
+				h:ßresultingHeightNoFill,
+				left:ßresultNofillLeft,
+				top:ßresultNofilltop
+			}
+			return {
+				w:ßresultingWidth,
+				h:ßresultingHeight,
+				wk:ßkresultingWidth,
+				hk:ßkresultingHeight,
+				c:center,
+				nofill:Nofill
+			}
+		},
+
+
+		//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+//
+//	resizes the image to propper size and Animates the kenBurns Effect
+//
+//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+		animateKenBurnsAndResizeImage : function(img,sizes){
+			var $this = this;
+			var kb = false;
+			if( ( $this.isFullScreen == false && $this.options.kenBurns > 0 )  || ( $this.isFullScreen == true && $this.options.KenBurnsInFullScreen == true ) ){
+
+				//var kbAnimationTime = $this.options.timeBetweenAnimations + $this.options.imageAnimationInSpeed;
+				var kbAnimationTime = $this.options.kenburnAnimationTime;
+				// set the kenBurn animation tipe if enabled:
 				if(typeof($this.options.images[$this.nextImageIndex]["kenburns"]) != "undefined"){
-					var kb = $this.options.images[$this.nextImageIndex]["kenburns"]
-				}else{
-					var kb = (Math.floor((Math.random()*17)+1)).toString() ;
-				}
-				$this.consoleOut("Ken Burns Animation:" + kb);
-				if($this.options.kenBurns > 0){
-					switch (kb){
-						case "1": // zoom in top left
-						default:
-							img.css({  top : sizes.c.top, left:sizes.c.left,width:sizes.wk,height:sizes.hk }).animate({  width:sizes.w,  height:sizes.h,  top : sizes.c.top, left : sizes.c.left   }, $this.options.timeBetweenAnimations + $this.options.imageAnimationInSpeed,"linear");
-							break;
-						case "2": // zoom in top 
-							img.css({  top : sizes.c.top, left:sizes.c.kleft,width:sizes.wk,height:sizes.hk }).animate({  width:sizes.w,  height:sizes.h,  top : sizes.c.top, left : sizes.c.left   }, $this.options.timeBetweenAnimations + $this.options.imageAnimationInSpeed,"linear");
-							break;
-						case "3": // zoom in top right
-							img.css({  top : sizes.c.top, right:sizes.c.left, width:sizes.wk, height:sizes.hk }).animate({  width:sizes.w,  height:sizes.h,  top : sizes.c.top, right:sizes.c.left}, $this.options.timeBetweenAnimations + $this.options.imageAnimationInSpeed,"linear");
-							break;
-						case "4": // zoom in right
-							img.css({  top : sizes.c.ktop, right:sizes.c.left, width:sizes.wk, height:sizes.hk }).animate({  width:sizes.w,  height:sizes.h,  top : sizes.c.top, right:sizes.c.left}, $this.options.timeBetweenAnimations + $this.options.imageAnimationInSpeed,"linear");
-							break;
-						case "5": // zoom in bottom right
-							img.css({  bottom : sizes.c.top, right:sizes.c.left, width:sizes.wk, height:sizes.hk }).animate({  width:sizes.w,  height:sizes.h,  bottom : sizes.c.top, right:sizes.c.left}, $this.options.timeBetweenAnimations + $this.options.imageAnimationInSpeed,"linear");
-							break;
-						case "6": // zoom in bottom
-							img.css({  bottom : sizes.c.top, right:sizes.c.kleft, width:sizes.wk, height:sizes.hk }).animate({  width:sizes.w,  height:sizes.h,  bottom : sizes.c.top, right:sizes.c.left}, $this.options.timeBetweenAnimations + $this.options.imageAnimationInSpeed,"linear");
-							break;
-						case "7":  // zoom in bottom left
-							img.css({  bottom : sizes.c.top, left:sizes.c.left, width:sizes.wk, height:sizes.hk }).animate({  width:sizes.w,  height:sizes.h,  bottom : sizes.c.top, left:sizes.c.left}, $this.options.timeBetweenAnimations + $this.options.imageAnimationInSpeed,"linear");
-							break;
-						case "8": // zoom in left
-							img.css({  bottom : sizes.c.ktop, left:sizes.c.left, width:sizes.wk, height:sizes.hk }).animate({  width:sizes.w,  height:sizes.h,  bottom : sizes.c.top, left:sizes.c.left}, $this.options.timeBetweenAnimations + $this.options.imageAnimationInSpeed,"linear");
-							break;
-						case "9": // zoom in center
-							img.css({  bottom : sizes.c.ktop, left:sizes.c.kleft, width:sizes.wk, height:sizes.hk }).animate({  width:sizes.w,  height:sizes.h,  bottom : sizes.c.top, left:sizes.c.left}, $this.options.timeBetweenAnimations + $this.options.imageAnimationInSpeed,"linear");
-							break;
-						case "10": // zoom out top left
-							img.css({  top : sizes.c.top, left:sizes.c.left, width:sizes.w, height:sizes.h }).animate({  width:sizes.wk,  height:sizes.hk,  top : sizes.c.top, left : sizes.c.left   }, $this.options.timeBetweenAnimations + $this.options.imageAnimationInSpeed,"linear");
-							break;
-						case "11":  // zoom out top 
-							img.css({  top : sizes.c.top, left:sizes.c.left,width:sizes.w,height:sizes.h }).animate({  width:sizes.wk,  height:sizes.hk,  top : sizes.c.top, left : sizes.c.kleft   }, $this.options.timeBetweenAnimations + $this.options.imageAnimationInSpeed,"linear");
-							break;
-						case "12": // zoom out top right
-							img.css({  top : sizes.c.top, right:sizes.c.left, width:sizes.w, height:sizes.h }).animate({  width:sizes.wk,  height:sizes.hk,  top : sizes.c.top, right:sizes.c.left}, $this.options.timeBetweenAnimations + $this.options.imageAnimationInSpeed,"linear");
-							break;
-						case "13": // zoom out right
-							img.css({  top : sizes.c.top, right:sizes.c.left, width:sizes.w, height:sizes.h }).animate({  width:sizes.wk,  height:sizes.hk,  top : sizes.c.ktop, right:sizes.c.left}, $this.options.timeBetweenAnimations + $this.options.imageAnimationInSpeed,"linear");
-							break;
-						case "14": // zoom out bottom right
-							img.css({  bottom : sizes.c.top, right:sizes.c.left, width:sizes.w, height:sizes.h }).animate({  width:sizes.wk,  height:sizes.hk,  bottom : sizes.c.top, right:sizes.c.left}, $this.options.timeBetweenAnimations + $this.options.imageAnimationInSpeed,"linear");
-							break;
-						case "15": // zoom out bottom
-							img.css({  bottom : sizes.c.top, left:sizes.c.left, width:sizes.w, height:sizes.h }).animate({  width:sizes.wk,  height:sizes.hk,  bottom : sizes.c.top, left:sizes.c.kleft}, $this.options.timeBetweenAnimations + $this.options.imageAnimationInSpeed,"linear");
-							break;
-						case "16": // zoom out bottom left
-							img.css({  bottom : sizes.c.top, left:sizes.c.left, width:sizes.w, height:sizes.h }).animate({  width:sizes.wk,  height:sizes.hk,  bottom : sizes.c.top, left:sizes.c.left}, $this.options.timeBetweenAnimations + $this.options.imageAnimationInSpeed,"linear");
-							break;
-						case "17": // zoom out left
-							img.css({  top : sizes.c.top, left:sizes.c.left, width:sizes.w, height:sizes.h }).animate({  width:sizes.wk,  height:sizes.hk,  top : sizes.c.ktop, left:sizes.c.left}, $this.options.timeBetweenAnimations + $this.options.imageAnimationInSpeed,"linear");
-							break;
-						case "18": // zoom out center
-							img.css({  bottom : sizes.c.top, left:sizes.c.left, width:sizes.w, height:sizes.h }).animate({  width:sizes.wk,  height:sizes.hk,  bottom : sizes.c.ktop, left:sizes.c.kleft}, $this.options.timeBetweenAnimations + $this.options.imageAnimationInSpeed,"linear");
-							break;
-						case "0":
-							img.width(sizes.w).height(sizes.h).css({  top : sizes.c.top, left:sizes.c.left });
-							break;
-					}// end ken burns switch	
+					kb = $this.options.images[$this.nextImageIndex]["kenburns"]
 
+					if(kb == "in"){
+						// zoom in
+						kb = (Math.floor((Math.random()*9)+10)).toString() ;
+
+					}else if(kb == "out"){
+						// zoom out
+						kb = (Math.floor((Math.random()*9)+1)).toString() ;
+
+					}
 				}else{
+					kb = (Math.floor((Math.random()*18)+1)).toString() ;
+				}
+
+				var easing = $this.options.kenburnsEasing;
+				img.removeAttr( "height" ).removeAttr( "width" ).css({"height":"","width":"","top":"","left":"","right":"","bottom":""});
+
+				$this.consoleOut("Method: animateKenBurnsAndResizeImage() -> animation: " + kb );
+				$this.consoleOut(dump(sizes));
+
+				// resize acording kenburns
+				switch (kb){
+					case "1": // zoom in top left
+					default:
+						img.css({  top : sizes.c.top, left:sizes.c.left,width:sizes.wk,height:sizes.hk }).animate({  width:sizes.w,  height:sizes.h,  top : sizes.c.top, left : sizes.c.left   }, kbAnimationTime,easing);
+						break;
+					case "2": // zoom in top
+						img.css({  top : sizes.c.top, left:sizes.c.kleft,width:sizes.wk,height:sizes.hk }).animate({  width:sizes.w,  height:sizes.h,  top : sizes.c.top, left : sizes.c.left   },  kbAnimationTime,easing);
+						break;
+					case "3": // zoom in top right
+						img.css({  top : sizes.c.top, right:sizes.c.left, width:sizes.wk, height:sizes.hk }).animate({  width:sizes.w,  height:sizes.h,  top : sizes.c.top, right:sizes.c.left}, kbAnimationTime,easing);
+						break;
+					case "4": // zoom in right
+						img.css({  top : sizes.c.ktop, right:sizes.c.left, width:sizes.wk, height:sizes.hk }).animate({  width:sizes.w,  height:sizes.h,  top : sizes.c.top, right:sizes.c.left},  kbAnimationTime,easing);
+						break;
+					case "5": // zoom in bottom right
+						img.css({  bottom : sizes.c.top, right:sizes.c.left, width:sizes.wk, height:sizes.hk }).animate({  width:sizes.w,  height:sizes.h,  bottom : sizes.c.top, right:sizes.c.left}, kbAnimationTime,easing);
+						break;
+					case "6": // zoom in bottom
+						img.css({  bottom : sizes.c.top, right:sizes.c.kleft, width:sizes.wk, height:sizes.hk }).animate({  width:sizes.w,  height:sizes.h,  bottom : sizes.c.top, right:sizes.c.left}, kbAnimationTime,easing);
+						break;
+					case "7":  // zoom in bottom left
+						img.css({  bottom : sizes.c.top, left:sizes.c.left, width:sizes.wk, height:sizes.hk }).animate({  width:sizes.w,  height:sizes.h,  bottom : sizes.c.top, left:sizes.c.left},  kbAnimationTime,easing);
+						break;
+					case "8": // zoom in left
+						img.css({  bottom : sizes.c.ktop, left:sizes.c.left, width:sizes.wk, height:sizes.hk }).animate({  width:sizes.w,  height:sizes.h,  bottom : sizes.c.top, left:sizes.c.left}, kbAnimationTime,easing);
+						break;
+					case "9": // zoom in center
+						img.css({  bottom : sizes.c.ktop, left:sizes.c.kleft, width:sizes.wk, height:sizes.hk }).animate({  width:sizes.w,  height:sizes.h,  bottom : sizes.c.top, left:sizes.c.left},  kbAnimationTime,easing);
+						break;
+					case "10": // zoom out top left
+						img.css({  top : sizes.c.top, left:sizes.c.left, width:sizes.w, height:sizes.h }).animate({  width:sizes.wk,  height:sizes.hk,  top : sizes.c.top, left : sizes.c.left   },  kbAnimationTime,easing);
+						break;
+					case "11":  // zoom out top
+						img.css({  top : sizes.c.top, left:sizes.c.left,width:sizes.w,height:sizes.h }).animate({  width:sizes.wk,  height:sizes.hk,  top : sizes.c.top, left : sizes.c.kleft   },  kbAnimationTime,easing);
+						break;
+					case "12": // zoom out top right
+						img.css({  top : sizes.c.top, right:sizes.c.left, width:sizes.w, height:sizes.h }).animate({  width:sizes.wk,  height:sizes.hk,  top : sizes.c.top, right:sizes.c.left},  kbAnimationTime,easing);
+						break;
+					case "13": // zoom out right
+						img.css({  top : sizes.c.top, right:sizes.c.left, width:sizes.w, height:sizes.h }).animate({  width:sizes.wk,  height:sizes.hk,  top : sizes.c.ktop, right:sizes.c.left},  kbAnimationTime,easing);
+						break;
+					case "14": // zoom out bottom right
+						img.css({  bottom : sizes.c.top, right:sizes.c.left, width:sizes.w, height:sizes.h }).animate({  width:sizes.wk,  height:sizes.hk,  bottom : sizes.c.top, right:sizes.c.left},  kbAnimationTime,easing);
+						break;
+					case "15": // zoom out bottom
+						img.css({  bottom : sizes.c.top, left:sizes.c.left, width:sizes.w, height:sizes.h }).animate({  width:sizes.wk,  height:sizes.hk,  bottom : sizes.c.top, left:sizes.c.kleft},  kbAnimationTime,easing);
+						break;
+					case "16": // zoom out bottom left
+						img.css({  bottom : sizes.c.top, left:sizes.c.left, width:sizes.w, height:sizes.h }).animate({  width:sizes.wk,  height:sizes.hk,  bottom : sizes.c.top, left:sizes.c.left},  kbAnimationTime,easing);
+						break;
+					case "17": // zoom out left
+						img.css({  top : sizes.c.top, left:sizes.c.left, width:sizes.w, height:sizes.h }).animate({  width:sizes.wk,  height:sizes.hk,  top : sizes.c.ktop, left:sizes.c.left},  kbAnimationTime,easing);
+						break;
+					case "18": // zoom out center
+						img.css({  bottom : sizes.c.top, left:sizes.c.left, width:sizes.w, height:sizes.h }).animate({  width:sizes.wk,  height:sizes.hk,  bottom : sizes.c.ktop, left:sizes.c.kleft},  kbAnimationTime,easing);
+						break;
+					case "0":
+						img.width(sizes.w).height(sizes.h).css({  top : sizes.c.top, left:sizes.c.left });
+						break;
+				}// end ken burns switch
+			}else{
+				img.stop();
+
+				if( ($this.isFullScreen == false &&  FillInWindowScreen == true) || ($this.isFullScreen == true && $this.options.FillInFullScreen == true)){
 					img.width(sizes.w).height(sizes.h);
 					img.css({  top : sizes.c.top, left:sizes.c.left });
-				}
-
-
-
-
-
-				//img.transition({  width:sizes.w,  height:sizes.h,  top : sizes.c.top, left : sizes.c.left   }, $this.options.timeBetweenAnimations + $this.options.imageAnimationInSpeed);
-			}
-
-			function addOutLink(img){
-				// add outgoing link
-				if(typeof($this.options.images[$this.nextImageIndex]["link"]) != "undefined"){
-					var outLink = $this.options.images[$this.nextImageIndex]["link"];
-					var title = $this.options.images[$this.nextImageIndex]["title"];
-					var desc = $this.options.images[$this.nextImageIndex]["desc"];
-
-					img.click(function(){
-						window.location.href = outLink;
-					}).css( 'cursor', 'pointer' );
-
-					$(title).click(function(){
-						window.location.href = outLink;
-					}).css( 'cursor', 'pointer' );
-
-					$(desc).click(function(){
-						window.location.href = outLink;
-					}).css( 'cursor', 'pointer' );
-
-
-				}
-			}
-
-			function showTitles(){
-				// show the and hide the title
-				setTimeout(
-					function(){
-						$this.showTextDiv(
-							$this.options.images[$this.nextImageIndex]["title"], // element
-							$this.options.titleAnimationInSpeed, // show speed
-							$this.options.titleAnimationOutSpeed, // hide Speed
-							$this.options.titleTimeBeforeHide, // sleep time
-							$this.options.titleAnimation // animation
-						);
-					} , $this.options.titleAnimationTimeOut );
-
-				setTimeout(
-					function(){
-						$this.showTextDiv(
-							$this.options.images[$this.nextImageIndex]["desc"], // element
-							$this.options.descriptionAnimationInSpeed, // show speed
-							$this.options.descriptionAnimationOutSpeed, // hide Speed
-							$this.options.descriptionTimeBeforeHide, // sleep time
-							$this.options.descriptionAnimation // animation
-						);
-					} , $this.options.descriptionAnimationTimeOut );
-			}
-
-			function removeTitles(){
-				if(typeof($this.options.images[$this.currentImageIndex]) != "undefined"){
-					$($this.options.images[$this.currentImageIndex]["title"]).stop(true).remove();
-					$($this.options.images[$this.currentImageIndex]["desc"]).stop(true).remove();
-				}
-			}
-
-			function switchImages(){
-
-				//alert($this.fastResize);
-				if($this.fastResize == true){
-					var animateOutSpeed = 100;
-					$this.fastResize = false;
-
 				}else{
-					var animateOutSpeed = $this.options.imageAnimationOutSpeed;
+					img.width(sizes.nofill.w).height(sizes.nofill.h);
+					//$this.container.width(sizes.nofill.w).height(sizes.nofill.h).css({  top : sizes.nofill.top, left:sizes.nofill.left });
+					img.css({  top : sizes.nofill.top, left:sizes.nofill.left });
+
 				}
+				$this.consoleOut("Method: animateKenBurnsAndResizeImage() -> No KenBurns");
+				//alert(dump(sizes));
+			}
+		},
 
-				switch ($this.options.imageAnimation){
+//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+//
+//	make the First image visible
+//
+//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+		showFirstImage:function(ßcallback){
+			this.consoleOut("Method: showFirstImage() ->  Current Image = "+ this.currentImageIndex + " Next Image = "+ this.nextImageIndex);
 
-					case "fade":
+			var $this = this;
+			var $callback = ßcallback;
+			var div = $this.options.images[$this.nextImageIndex]["div"];
+			var imgDiv = $this.options.images[$this.nextImageIndex]["imgdiv"];
+			var sizes = $this.getImageResize($this.nextImageIndex);
 
+			//alert(dump(sizes));
 
-						currentDiv.animate({   opacity:0},animateOutSpeed).queue(
-							function() {
-								removeTitles();
-								$(this).remove();
-								$($this.container).append(div);
-
-								var img = $(div).find("img").first().css({position:"absolute"});
-
-								addOutLink(img);
-
-								div.css({opacity: 0}).animate({   opacity: 1  },$this.options.imageAnimationInSpeed).queue(
-									function(){
-										timeoutToNextImage();
-										$(this).dequeue();
-									}
-								);
-
-								animateKenBurns(img,sizes);
+			this.hideLoading();
 
 
-								showTitles()
+			if($this.options.enableNavigationControls == true){
+				$this.showNavigationControls();
+			}
 
-								$(this).dequeue();
-
-							}
-						);
+			initSwitchImages();
 
 
 
-						break;
+			function afterImageChanged(){
 
-
-
-				}// end of switch					
+				// after loading the first image, show the navigation controlls as callback function
+				if (typeof($this.options.afterMainLoopStarted) == "function") {
+					$this.options.afterMainLoopStarted();
+				}
 			}
 
 			function initSwitchImages(){
 				switch ($this.options.openingAnimation){
-
 					case "fade":
+						// TODO -> repasar, basandose en TV
 						$($this.container).append(div);
 						var img = $(div).find("img").first().css({position:"absolute"});
-						addOutLink(img);
+						$this.addOutLink(img);
 						div.css({opacity: 0}).animate({   opacity: 1  },$this.options.imageAnimationInSpeed).queue(
 							function(){
 								timeoutToNextImage();
@@ -966,263 +989,519 @@ function dump(arr,level) {
 							}
 						);
 						animateKenBurns(img,sizes);
-						showTitles()
-
+						showTitles();
 						break;
-
 					case "TV":
 						$($this.container).append(div);
 						var img = $(div).find("img").first().css({position:"absolute"});
-						addOutLink(img);
-						div.css({height:0,overflow:"hidden",position:"relative",top:$this.containerHeight/2}).animate({height:$this.containerHeight,top:0} ,$this.options.imageAnimationInSpeed).queue(
+						$this.addOutLink(img);
+
+						$this.animateKenBurnsAndResizeImage(img,sizes);
+						$this.showTitles()
+
+						// div.css(
+						// {
+						// position:"absolute",
+						// width:$this.containerWidth ,
+						// height:$this.containerHeight
+						// }
+						// );
+						imgDiv.css({height:0,position:"relative",top:$this.containerHeight/2}).animate({height:$this.containerHeight,top:0} ,$this.options.imageAnimationInSpeed).queue(
 							function(){
-								timeoutToNextImage();
-								$(div).css({"heigh":"","position":"","top":""})
+								afterImageChanged();
+								$this.sleepUntilNextImage(ßcallback);
+								$(imgDiv).css({"heigh":"","top":"",position:"absolute", width:$this.containerWidth ,height:$this.containerHeight})
 								$(this).dequeue();
 							}
 						);
-						animateKenBurns(img,sizes);
-						showTitles()
-
 						break;
-
-				}// end of switch					
+				}// end of switch
 			}
-
-
-
-
 		},
 
 //───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-// 																														
-//	make the title for next image visible																				
-// 																													
-//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────    	
-		showTextDiv:function($element,$showSpeed,$hideSpeed,$sleepTime,$animation){
+//
+//	make the next image visible
+//
+//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+		showNextImage:function(ßcallback){
+			this.consoleOut("Method: showNextImage() -> Current Image = "+ this.currentImageIndex + " Next Image = "+ this.nextImageIndex);
 
 			var $this = this;
-			this.consoleOut("Show textDiv method"+ $($element).html() );
+			var $callback = ßcallback;
+			var div = $this.options.images[$this.nextImageIndex]["div"];
+			// TODO working here
+			//$(div).css({"heigh":"","top":"",position:"absolute", width:"" ,height:""})
+			var imgDiv = $this.options.images[$this.nextImageIndex]["imgdiv"];
+			//var img = $this.options.images[$this.nextImageIndex]["img"];
+			var sizes = $this.getImageResize($this.nextImageIndex);
+			var currentDiv = $this.options.images[$this.currentImageIndex]["div"];
+			this.hideLoading();
 
-			if($element != false){
+			switchImages();
 
-				var div = $this.options.images[$this.nextImageIndex]["div"];
-				var textElement = $element;
-
-				switch ($animation){
+			function switchImages(){
+				$this.consoleOut("Method: showNextImage() -> Sub Function  switchImages ");
+				var animateOutSpeed = $this.options.imageAnimationOutSpeed;
+				switch ($this.options.imageAnimation){
 
 					case "fade":
+						// TODO -> repasar, basandose en slide right
+						currentDiv.animate({   opacity:0},animateOutSpeed).queue(
+							function() {
+								$this.removeTitles();
+								$(this).remove();
+								$($this.container).append(div);
 
-						div.append(textElement);
+								var img = $(div).find("img").first().css({position:"absolute"});
 
-						textElement.css({ opacity: 0 , 'z-index': this.options.baseZIndex+11 }).animate({ opacity: 1 },$showSpeed).queue(function(){
-							// callback
+								$this.addOutLink(img);
 
-							setTimeout(function(){
-								textElement.animate({ opacity: 0 },$hideSpeed).queue(function(){
-									$this.consoleOut("remove Element "+ $this.nextImageIndex+ "<============================================")
-									$(this).remove();
-								})
-							},$sleepTime);
+								$this.animateKenBurnsAndResizeImage(img,sizes);
+								$this.showTitles();
 
+								div.css({opacity: 0}).animate({   opacity: 1  },$this.options.imageAnimationInSpeed).queue(
+									function(){
+										$this.sleepUntilNextImage(ßcallback);
+										$(this).dequeue();
+									}
+								);
+								$(this).dequeue();
 
-							$(this).dequeue();
-						});
-
+							}
+						);
 						break;
 
-				}// end of switch			
+					case "crosfade":
+						// TODO -> repasar, basandose en slide right
 
-			}else{
+						$this.removeTitles();
+						$($this.container).append(div);
 
+						var remove = currentDiv;
+
+						var img = $(div).find("img").first().css({position:"absolute"});
+
+						$this.addOutLink(img);
+
+						$this.animateKenBurnsAndResizeImage(img,sizes);
+
+						$this.showTitles();
+
+						div.css({opacity: 0}).animate({   opacity: 1  },$this.options.imageAnimationInSpeed*2).queue(
+							function(){
+								$(remove).remove();
+								$this.sleepUntilNextImage(ßcallback);
+								$(this).dequeue();
+							}
+						);
+
+						break
+
+					case "slideright":
+
+						$this.removeTitles();
+						$($this.container).append(div);
+
+						var remove = currentDiv;
+						var img = $(div).find("img").first().css({position:"absolute"});
+						//$(img).css({position:"absolute"});
+						$this.addOutLink(img);
+						$this.animateKenBurnsAndResizeImage(img,sizes);
+						$this.showTitles();
+
+
+						imgDiv.css(
+							{position:"absolute",
+								overflow:"hidden",
+								width:$this.containerWidth ,
+								height:$this.containerHeight,
+								left: $this.containerWidth + "px"}
+						).animate({
+								left: 0},$this.options.imageAnimationInSpeed).queue(
+							function(){
+								$(remove).remove();
+								$this.sleepUntilNextImage(ßcallback);
+								$(this).dequeue();
+							}
+						);
+
+
+						// $(nextImageNode).css({opacity:1,"left": (-1 *$container_width)}).animate({ "left":0},{ duration: options.fade_time ,queue : false,  complete: function() {
+//
+						// $isInTransition = false;
+						// if(options.enableNavigationBar == true){
+						// $($container).find('.oSlideNavigationElementId_'+$nextImage).addClass("oSlideNavigationActiveElement");
+						// $($container).find('.oSlideNavigationElementId_'+$currentImage).removeClass("oSlideNavigationActiveElement");
+						// }
+//
+						// }});
+						break;
+
+
+				}// end of switch
 			}
-
-
 
 
 		},
 
 //───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-// 																														
-//	Show next and previous arrows																								
-// 																													
-//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────    	
-
-		showNavigationControls:function (){
-			this.consoleOut("show Navigation Controls");
-
+//
+//	calls the tiemout funtion to sleep between image transition
+//
+//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+		sleepUntilNextImage: function($callback){
 			var $this = this;
+			this.isInImageTransition = false;
+			$this.consoleOut("Method: sleepUntilNextImage()");
 
-			var $nextButton = $('<div id="oSlideNextNavigation" class="oSlideNavigationControl"><div></div></div>')
-			$this.container.append($nextButton);
-
-			var $prewButton = $('<div id="oSlidePrewNavigation" class="oSlideNavigationControl"><div></div></div>')
-			$this.container.append($prewButton);
-
-			if($this.options.allowFullScreen == true){
-				var $zoomButton = $('<div id="oSlideZoomButton"></div>');
-				$this.container.append($zoomButton);
-				$zoomButton.css({'z-index': this.options.baseZIndex+10 });
-				$($zoomButton).click(function(){
-					if($this.isFullScreen == false){
-						$this.isFullScreen = true;
-						$this.consoleOut("Click on navigation controls Full Screen")
-						//$timeLeft = options.sleep
-						//alert("fullScreen");
-						$this.goFullScreen();
-					}else{
-						$this.isFullScreen = false;
-						$this.consoleOut("Click on navigation controls Exit fullScreen")
-						//$timeLeft = options.sleep
-						//alert("fullScreen");
-						$this.exitFullScreen();
-					}
-
-				});
-			}
-
-			$nextButton.height(this.containerHeight).css({'z-index': this.options.baseZIndex+10 ,postion:"absolute",top:0,right:0}).find("div").css({"top": ( (this.containerHeight /2 )-30 ) });
-			$prewButton.height(this.containerHeight).css({'z-index': this.options.baseZIndex+10 ,postion:"absolute",top:0,left:0}).find("div").css({"top": ( (this.containerHeight /2 )-30 ) });
-
-			$($nextButton).click(function(){
-				$this.consoleOut("Click on navigation controls NEXT")
-				//$timeLeft = options.sleep
-				$this.next();
-			});
-
-			$($prewButton).click(function(){
-				$this.consoleOut("Click on navigation controls Prew")
-				//$timeLeft = options.sleep
-				$this.previous();
-
-			});
-
-			if(this.options.alwaysSowNavigationControls != true){
-				if($this.options.allowFullScreen == true){
-					$zoomButton.hide();
-					$this.container.hover(function(){
-						$zoomButton.stop(true,true).fadeIn();
-					}, function(){
-						$zoomButton.stop(true,true).fadeOut();
-					});
+			$this.mainLoopTimer = new Timer(function(){
+				if(typeof($callback) == "function"){
+					$callback();
 				}
-				$nextButton.hide();
-				$prewButton.hide();
-				$this.container.hover(function(){
-					$nextButton.stop(true,true).fadeIn();
-					$prewButton.stop(true,true).fadeIn();
-				}, function(){
-					$nextButton.stop(true,true).fadeOut();
-					$prewButton.stop(true,true).fadeOut();
-				});
+			},$this.options.timeBetweenAnimations - $this.options.imageAnimationInSpeed);
+
+			if($this.containerHasMouse == true){
+
+				if($this.isFullScreen == true && $this.options.FullScreenPause == true){
+					$this.pause();
+					//alert("pause hacer un if con la variable del pause full screen")
+				}else if($this.isFullScreen == false){
+					$this.pause();
+				}
+
+
 			}
 
+			// thanks to: http://stackoverflow.com/questions/3969475/javascript-pause-settimeout
+			function Timer(callback, delay) {
 
+				var InitDelay, timerId, start, remaining = delay;
+
+				this.pause = function() {
+					$this.consoleOut("Method: sleepUntilNextImage() -> Subfunction Pause");
+					window.clearTimeout(timerId);
+					remaining -= new Date() - start;
+				};
+
+				this.clear = function(){
+					window.clearTimeout(timerId);
+					timerId, start, remaining = this.initDelay;
+				}
+
+				this.resume = function() {
+					$this.consoleOut("Method: sleepUntilNextImage() -> Subfunction Resume");
+					start = new Date();
+					timerId = window.setTimeout(callback, remaining);
+
+				};
+
+				this.resume();
+			}
 		},
 
-
-
-
 //───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-// 																														
-//	Load the Next image																								
-// 																													
-//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────    	
-		SlideNext:function(ßcallback){
-
-
-
-			this.consoleOut("SlideNext() $currentImage: "+this.currentImageIndex +" $nextImage: "+this.nextImageIndex );
-
+//
+//	Load the Next image
+//
+//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+		mainLoop:function(ßcallback){
 			var $this = this;
+			this.consoleOut("Method: mainLoop() -> $currentImage: "+this.currentImageIndex +" $nextImage: "+this.nextImageIndex );
+
 			if(this.isInImageTransition != true){
 				this.isInImageTransition = true;
 
-				clearTimeout(this.mainLoopTimer);
 
-				//clearTimeout(this.titleTimer);
-				//clearTimeout(this.descTimer);
+				$this.mainLoopTimer.clear();
 
+				// image calculation
 
-				if($this.slideStarted != true ){ // first time runing this instance
-					$this.slideStarted = true;
+				if( ( typeof(ßcallback) == "string" ) || (typeof(ßcallback) == "number" ) ){
+					var val = ßcallback;
+				}
 
-					$this.nextImageIndex = 0;
-					$this.currentImageIndex = -1;
-
-				}else{
-
-					if( ( typeof(ßcallback) == "string" ) || (typeof(ßcallback) == "number" ) ){
-						var val = ßcallback;
-					}
-
-					if(val == "-1"){
-						if($this.nextImageIndex == 0){
-							$this.currentImageIndex = $this.nextImageIndex;
-							$this.nextImageIndex = $this.imgLength -1;
-						}else{
-							$this.currentImageIndex = $this.nextImageIndex;
-							$this.nextImageIndex = $this.nextImageIndex -1;
-						}
-					}else if ((typeof(val) == "number") && (val <= ($this.imgLength -1))){
+				if(val == "-1"){
+					if($this.nextImageIndex == 0){
 						$this.currentImageIndex = $this.nextImageIndex;
-						$this.nextImageIndex = val
-					}else if (val == "-2"){ // reload
-						$this.reload = true;
+						$this.nextImageIndex = $this.imgLength -1;
 					}else{
-						if($this.nextImageIndex == $this.imgLength -1){
-							$this.currentImageIndex = $this.nextImageIndex;
-							$this.nextImageIndex = 0;
-						}else{
-							$this.currentImageIndex = $this.nextImageIndex;
-							$this.nextImageIndex = $this.nextImageIndex +1;
-						}
+						$this.currentImageIndex = $this.nextImageIndex;
+						$this.nextImageIndex = $this.nextImageIndex -1;
+					}
+				}else if ((typeof(val) == "number") && (val <= ($this.imgLength -1))){
+					$this.currentImageIndex = $this.nextImageIndex;
+					$this.nextImageIndex = val
+				}else{
+					if($this.nextImageIndex == $this.imgLength -1){
+						$this.currentImageIndex = $this.nextImageIndex;
+						$this.nextImageIndex = 0;
+					}else{
+						$this.currentImageIndex = $this.nextImageIndex;
+						$this.nextImageIndex = $this.nextImageIndex +1;
 					}
 				}
 
-
-				this.imagePreload(function(){
-					//$this.imageTransition();
-
+				$this.imagePreload(function(){
 					$this.showNextImage(function(){
-						//$this.imageTransition();
-						$this.SlideNext();
+						$this.mainLoop();
 					});
 
 					if(typeof(ßcallback) == "function" ){
 						ßcallback();
 					}
 				});
-
-
 			}
 		},
 
 
-		next : function(){
+//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+//
+//	Shows the title and description element if pressent
+//
+//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+		showTitles:function (ßmethod){
+			var $this = this;
+			this.consoleOut("Method: showTitles() ");
 
-			this.SlideNext("+1");
-		},
-		reloadThisImage : function(){
-			this.SlideNext("-2");
-		},
-		previous : function(){
+			// Tittle animation
+			//alert("add");
+			if($this.options.images[$this.nextImageIndex]["title"] != false){
+				setTimeout(function(){
 
-			this.SlideNext("-1");
-		},
-		goTo : function(i){
+					var div = $this.options.images[$this.nextImageIndex]["div"];
+					var textElement = $this.options.images[$this.nextImageIndex]["title"];
+					if(ßmethod == "fast"){
+						var animation = "fast"
+					}else{
+						var animation = $this.options.titleAnimation;
+					}
+					switchAnimation($this.options.titleAnimation,textElement,div,  $this.options.titleAnimationInSpeed,  $this.options.titleAnimationOutSpeed,  false);
 
-			this.SlideNext(i);
+					$this.tittleTimer = new Timer(function(){  // holds the timer for the title element
+						switchAnimation($this.options.titleAnimation,textElement,div,  $this.options.titleAnimationInSpeed,  $this.options.titleAnimationOutSpeed,  true);
+					},($this.options.timeBetweenAnimations -$this.options.imageAnimationOutSpeed - $this.options.titleAnimationBeforeTimeOut )); // how many millisecond before hidding the div, shoud we hide the title
+
+				}, $this.options.titleAnimationTimeOut);
+			}
+
+
+			// Description animation
+			if($this.options.images[$this.nextImageIndex]["desc"] != false){
+				setTimeout(function(){
+
+					var div = $this.options.images[$this.nextImageIndex]["div"];
+					var textElement = $this.options.images[$this.nextImageIndex]["desc"];
+					if(ßmethod == "fast"){
+						var animation = "fast"
+					}else{
+						var animation = $this.options.descriptionAnimation;
+					}
+					switchAnimation($this.options.descriptionAnimation,textElement,div,  $this.options.descriptionAnimationInSpeed,  $this.options.descriptionAnimationOutSpeed,  false);
+
+					$this.descTimer = new Timer(function(){  // holds the timer for the description element
+						switchAnimation($this.options.descriptionAnimation,textElement,div,  $this.options.descriptionAnimationInSpeed,  $this.options.descriptionAnimationOutSpeed,  true);
+					},($this.options.timeBetweenAnimations -$this.options.imageAnimationOutSpeed  - $this.options.descriptionAnimationBeforeTimeOut )); // how many millisecond before hidding the div, shoud we hide the title
+
+				}, $this.options.descriptionAnimationTimeOut);
+			}
+
+
+			function switchAnimation($animation,$textElement,$div,$speedIn,$speedOut,$hide){
+				$this.consoleOut("Method: showTitles() Sub function switchAnimation()");
+
+
+				switch ($animation){
+					case "fade":
+
+						if($hide == false){
+							//show Element
+							$div.append($textElement);
+							$textElement.css({ opacity: 0 , 'z-index': $this.options.baseZIndex+11 }).animate({ opacity: 1 },$speedIn);
+							$this.consoleOut("Method: showTitles() -> ADD element ID :  "+ $this.nextImageIndex+ " text: "+ $($textElement).html() )
+						}else if($hide == true){
+							// hide Element
+							$textElement.animate({ opacity: 0 },$speedOut).queue(function(){
+								$this.consoleOut("Method: showTitles() -> Remove element ID :  "+ $this.nextImageIndex+ " text: "+ $($textElement).html() )
+								$(this).remove();
+							})
+						}
+
+						break;
+
+					case "fast":
+
+						if($hide == false){
+							//show Element
+							$div.append($textElement);
+							$textElement.css({ opacity: 0 , 'z-index': $this.options.baseZIndex+11 }).animate({ opacity: 1 },100);
+						}else if($hide == true){
+							// hide Element
+							$textElement.animate({ opacity: 0 },100).queue(function(){
+								$this.consoleOut("Method: showTitles() -> Remove element ID :  "+ $this.nextImageIndex+ " text: "+ $($textElement).html() )
+								$(this).remove();
+							})
+						}
+						break;
+
+				}// end of switch
+			}
+
+			// thanks to: http://stackoverflow.com/questions/3969475/javascript-pause-settimeout
+			function Timer(callback, delay) {
+				var initDelay, timerId, start, remaining = delay;
+
+				this.pause = function() {
+					$this.consoleOut("Method: showTitles() -> Subfunction Pause");
+					window.clearTimeout(timerId);
+					remaining -= new Date() - start;
+				};
+				this.clear = function(){
+					window.clearTimeout(timerId);
+
+					timerId, start, remaining = this.initDelay;
+
+				}
+
+				this.resume = function() {
+					$this.consoleOut("Method: showTitles() -> Subfunction Resume");
+					start = new Date();
+					timerId = window.setTimeout(callback, remaining);
+				};
+
+				this.resume();
+			}
+
 		},
 
 //───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-// 																														
-//	Go fullscreen																						
-// 																													
-//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────   
+//
+//	Removes title and description if still pressent
+//
+//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+		removeTitles:function (ßspeed){
+			var $this = this;
+			this.consoleOut("Method: removeTitles() ");
+			if(ßspeed == "now"){
+				var speed = 0;
+
+			}else{
+				var speed = 150;
+			}
+
+			if (typeof ($this.options.images[$this.currentImageIndex] ) != "undefined") {
+				//code
+				//alert($this.options.images[$this.currentImageIndex]["title"].html())
+				if($this.options.images[$this.currentImageIndex]["title"] != false){
+					$($this.options.images[$this.currentImageIndex]["title"]).animate({ opacity:0},speed).queue(
+						function() {
+
+							$(this).remove();
+							$(this).dequeue();
+						}
+					);
+				}
+				if($this.options.images[$this.currentImageIndex]["desc"] != false){
+					$($this.options.images[$this.currentImageIndex]["desc"]).animate({ opacity:0},speed).queue(
+						function() {
+							$(this).remove();
+							$(this).dequeue();
+						}
+					);
+				}
+			}
+		},
+
+
+
+
+//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+//
+//	Pauses All timers
+//
+//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+		pause:function(){
+			var $this = this;
+			if($this.options.allowPause == true){
+				if($this.mainLoopTimer != false){
+					$this.mainLoopTimer.pause();
+				}
+
+				if($this.tittleTimer != false){
+					$this.tittleTimer.pause();
+				}
+
+				if($this.descTimer != false){
+					$this.descTimer.pause();
+				}
+			}
+		},
+
+//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+//
+//	Clear All timers
+//
+//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+		clear:function(){
+			var $this = this;
+			if($this.options.allowPause == true){
+				if($this.mainLoopTimer != false){
+					$this.mainLoopTimer.clear();
+				}
+
+				if($this.tittleTimer != false){
+					$this.tittleTimer.clear();
+				}
+
+				if($this.descTimer != false){
+					$this.descTimer.clear();
+				}
+			}
+		},
+
+//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+//
+//	Resumes All timers
+//
+//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+		resume: function(){
+			var $this = this;
+			if($this.options.allowPause == true){
+				if($this.mainLoopTimer != false){
+					$this.mainLoopTimer.resume();
+				}
+
+				if($this.tittleTimer != false){
+					$this.tittleTimer.resume();
+				}
+
+				if($this.descTimer != false){
+					$this.descTimer.resume();
+				}
+			}
+		},
+
+
+//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+//
+//	Go fullscreen
+//
+//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 		goFullScreen:function(ßcallback){
 
 			this.consoleOut("Go FullScreen");
+			var imgDiv = this.options.images[this.nextImageIndex]["imgdiv"];
+
+
+
+			if (this.isInImageTransition == true) {
+				$(this.options.images[this.currentImageIndex]["div"]).remove();
+				$(imgDiv).stop(true,true);
+				this.isInImageTransition = false;
+			}
+
 
 			var $this = this;
 			$this.isFullScreen = true;
@@ -1234,53 +1513,143 @@ function dump(arr,level) {
 			$($this.fulscreenContainer).append($this.container).addClass("oSlideFullScreen");
 			$($this.container).css({"width":"100%","height":"100%"});
 
-			if($this.isInImageTransition == true){
-				setTimeout(function(){
-					//alert("ss");
-					//$this.resize();
-				},$this.options.imageAnimationInSpeed + $this.options.imageAnimationOutSpeed);
-			}else{
-				$this.resize();
-			}
 
+
+
+			$this.resize(function(){
+
+				$this.reloadImage();
+				$this.resume();
+
+			});
+
+
+			//$this.containerWidth = 0	 // container sizes
+			//$this.containerHeight = 0
+
+			//alert("ancho: " +$this.containerWidth + " alto: "+ $this.containerHeight);
 
 
 		},
 
 //───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-// 																														
-//	Exit fullscreen																						
-// 																													
-//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────   
+//
+//	Exit fullscreen
+//
+//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 		exitFullScreen:function(ßcallback){
+			this.consoleOut("Exit FullScreen");
 
-			this.consoleOut("Go FullScreen");
+			var imgDiv = this.options.images[this.nextImageIndex]["imgdiv"];
+			if (this.isInImageTransition == true) {
+				$(this.options.images[this.currentImageIndex]["div"]).remove();
+				$(imgDiv).stop(true,true);
+				this.isInImageTransition = false;
+			}
 
 			var $this = this;
 			$this.isFullScreen = false;
 			$('body').css({"overflow":""});
+			$($this.NonSlidecontainer).append($this.container);
 
 
-			$($this.Originalcontainer).append($this.container);
-
-
-			var tempcontainerWidth = $($this.Originalcontainer).width();
-			var tempcontainerHeight = $($this.Originalcontainer).height();
-
-			$($this.container).width(tempcontainerWidth).height(tempcontainerHeight);
-
+//			var tempcontainerWidth = $($this.NonSlidecontainer).width();
+//			var tempcontainerHeight = $($this.Originalcontainer).height();
+//
+//                        $($this.container).width(tempcontainerWidth).height(tempcontainerHeight);
 			$($this.fulscreenContainer).remove();
 
-
-
-
-
-
-			$this.resize();
-
-
+			$this.resize(function(){
+				$this.reloadImage();
+			});
 
 		},
+
+//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+//
+//	Reload the same image
+//
+//───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+		// TODO recarga la imagen, pero no el titulo ni descricpion
+		reloadImage: function(){
+			this.consoleOut("Method: reloadImage()");
+
+			if(this.isInImageTransition != true){
+				this.isInImageTransition = true;
+
+				var $this = this;
+
+
+
+
+
+				var div = $this.options.images[$this.nextImageIndex]["div"];
+				var imgDiv = $this.options.images[$this.nextImageIndex]["imgdiv"];
+				var sizes = $this.getImageResize($this.nextImageIndex);
+
+				var titles = $this.options.images[$this.nextImageIndex]["title"];
+				var desc = $this.options.images[$this.nextImageIndex]["desc"];
+
+				if(titles != false){
+					$(titles).remove();
+				}
+				if(desc != false){
+					$(desc).remove();
+				}
+				//$this.clear();
+
+				if ($this.isFullScreen == false) {
+
+					$(imgDiv).css({
+						position:"absolute",
+						width:$this.containerWidth ,
+						height:$this.containerHeight,
+					})
+
+
+
+				}else{
+					$(imgDiv).css({
+						overflow:"",
+						width:$this.containerWidth ,
+						height:$this.containerHeight,
+					})
+
+
+				}
+
+				div.animate({   opacity:0},100).queue(
+					function() {
+
+						$(this).remove();
+						$($this.container).append(div);
+
+						var img = $(div).find("img").first().css({position:"absolute"});
+						$this.addOutLink(img);
+
+						$this.animateKenBurnsAndResizeImage(img,sizes);
+						$this.showTitles();
+
+						div.css({opacity: 0}).animate({   opacity: 1  },$this.options.imageAnimationInSpeed).queue(
+							function(){
+
+
+								$this.sleepUntilNextImage(function(){
+									$this.mainLoop();
+								});
+								$(this).dequeue();
+							}
+						);
+						$(this).dequeue();
+
+					}
+				);
+			}
+
+		},
+
+
 
 
 //########################################################################################################################################################################################################
@@ -1358,7 +1727,3 @@ function dump(arr,level) {
 		}
 	};
 })(jQuery);
-
-
-
-
