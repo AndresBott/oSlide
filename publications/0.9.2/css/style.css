@@ -1,0 +1,214 @@
+html, body, div, ul {
+	margin: 0;
+	padding: 0;
+}
+
+body {
+    color: #262626;
+	background: #f4f4f4;
+	font: normal 12px/18px Verdana, sans-serif;
+}
+
+#content {
+	width: 800px;
+	margin: 40px auto 40px auto;
+	padding: 0 60px 10px 60px;
+	border: solid 1px #cbcbcb;
+	background: #fafafa;
+	-moz-box-shadow: 0px 0px 10px #cbcbcb;
+	-webkit-box-shadow: 0px 0px 10px #cbcbcb;
+}
+
+#tittlebar{
+  
+  	margin: 45px 0 15px 0;
+  
+}
+
+#tittle{
+/* text-shadow: 1px 1px white, -1px -1px #333; */
+text-shadow:  1px 1px 1px grey;
+color:#C82D63;
+/* color:#fafafa; */
+}
+
+h1 {
+
+	font-size: 35px;
+	font-weight: bold;
+	font-family: Arial;
+	display:inline;
+}
+
+h1 span {
+	font-size: 40%;
+	letter-spacing: -0.05em;
+}
+
+hr {
+	border: none;
+	height: 1px; line-height: 1px;
+	background: #E5E5E5;
+	margin-bottom: 20px;
+	padding: 0;
+}
+
+p {
+	margin: 0;
+	padding: 7px 0;
+}
+
+a {
+	outline: none;
+		color:grey;
+	font-weight:bold;
+}
+
+a img {
+	border: 1px solid #BBB;
+	padding: 2px;
+	margin: 10px 20px 10px 0;
+	vertical-align: top;
+}
+
+a img.last {
+	margin-right: 0;	
+}
+
+ul {
+	margin-bottom: 24px;
+	padding-left: 30px;
+}
+
+
+#downloadButton{
+width:300px;
+height:20px;
+ margin: 0px auto;
+ border: 1px solid grey;
+ padding:10px;
+ background-color:white;
+ text-align:center;
+ text-decoration:none;
+ display:block
+
+}
+
+#downloadButton:hover {
+color:white;
+background-color:#C82D63;
+
+}
+
+/* ############################################################################################################################3 */
+/* ##   Code sintax
+/* ############################################################################################################################3 */
+
+a.source-close {
+      background-image: url("demo-spindown-closed.gif");
+	text-decoration:none;
+    background-position: left center;
+    background-repeat: no-repeat;
+    font-size: 12px;
+    padding-left: 13px;
+    cursor:pointer;
+}
+
+a.source-open {
+      background-image: url("demo-spindown-open.gif");
+	text-decoration:none;
+    background-position: left center;
+    background-repeat: no-repeat;
+    font-size: 12px;
+    padding-left: 13px;
+    cursor:pointer;
+}
+
+
+
+code{
+font-size:10px;
+line-height:80%
+
+}
+
+
+/* ############################################################################################################################3 */
+/* ##   overwrite Jquerys ui custom theme
+/* ############################################################################################################################3 */
+
+
+#tabs .ui-widget-header{
+background : none;
+border:none;
+border-bottom: 1px solid #E5E5E5
+}
+
+
+#tabs.ui-widget-content {
+background : none;
+border:none;
+}
+
+
+
+/* ############################################################################################################################3 */
+/* ##   options table
+/* ############################################################################################################################3 */
+
+
+
+table.options {
+	border-left: 1px solid #E2E2E2;
+	margin-bottom: 15px;
+}
+
+table.options th {
+	background: #15081F;
+	color: #fff;
+	padding: 10px;
+	text-align: left;
+	font-weight: bold;
+	border-right: 1px solid #3B224F;
+	border-bottom: 1px solid #3B224F;
+}
+
+table.options td {
+	padding: 7px 10px;
+	border-right: 1px solid #DDD;
+	border-bottom: 1px solid #DDD;
+	line-height: 1.6;
+}
+
+table.options tr.even {
+	background: #E9E9E9;
+}
+
+table.options tr.sep td {
+	border-bottom: 1px solid #BBB;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

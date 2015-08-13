@@ -1,0 +1,160 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en"  style="height: 100%">
+
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+	<meta http-equiv="imagetoolbar" content="no" />
+
+	<title>oSlide Demo Page</title>
+
+
+<!--  
+############################################################################################################################3
+##    oSlide Stuff
+############################################################################################################################3
+-->
+<!--  You obiusly need Jquery-->
+	<script type="text/javascript" src="js/jquery-1.6.2.min.js"></script>
+<!--  load oSlide-->
+	<script type="text/javascript" src="oSlide/jquery.oSlide.js"></script>
+<!--  load oSlide's css-->
+ 	<link rel="stylesheet" type="text/css" href="./css/oSlide-0.9.3.css" media="screen" /> 
+<!--  
+############################################################################################################################3
+##    oSlide Stuff 
+############################################################################################################################3
+-->
+
+
+
+
+
+</head>
+
+
+<body style="height: 100%">
+	<!--<div id="debug" style="width:300px; height: 80px; background: white; position: fixed; z-index: 500000;">-->
+		
+	<!--</div>-->
+
+			<br>
+			sadasdsad
+	<!-- 
+	<table border = 1 width="100%" height="100%">
+		<tr>
+			<td width="100px"> dasdasdas</td>
+			<td>  -->
+		<div id="oSlide" class="oSlides"  style="width:70%; height:300px; border:1px solid blue; margin:auto;">
+		<script>
+
+			var Photos=[
+				{ "url": "sample_pics/01.jpg" ,
+				  "title" : "Seda","link":"http://www.google.es" ,
+				   kenburns : "in" ,
+				   thumb: "sample_pics/01_thumb.jpg"
+				} ,
+				
+				{ "url": "sample_pics/02.jpg" ,  "desc" : "Retraro entre Bambú","link":"http://www.google.es" , kenburns : "7" , thumb: "sample_pics/02_thumb.jpg" } ,
+				{ "url": "sample_pics/03.jpg" ,  "desc" : "O-ramis.com", thumb: "sample_pics/03_thumb.jpg" } ,
+				{ "url": "sample_pics/04.jpg" ,  "desc" : "Vidrio en la Playa" , thumb: "sample_pics/04_thumb.jpg"  } 
+					]
+			$(document).ready(function(){
+				$("#oSlide").oSlide({
+				    images: Photos, 		// an array containing all data to the images
+				    debug:true,
+				    kenBurns:30,
+				    KenBurnsInFullScreen : false,
+				    thumbnails : "b",
+				    thumbSize : 80,
+				    FillInFullScreen : false,
+				    FullScreenPause : false,
+				    //afterMainLoopStarted: function(){ alert("afterMain loop")},
+				    //afterResize: function(){ alert("after Resize")},				    
+				    imageAnimation:"slideright",
+				    imageAnimationInSpeed:1800,
+			 		timeBetweenAnimations:800000,
+			 		//kenburnAnimationTime:5000,
+			 		kenburnsEasing:"swing",
+				      
+					});
+					
+				var slide = $("#oSlide").data('JsObj');
+				$("#bot").click(function(){
+					slide.goTo(3);
+				})
+				//
+				//(slide);
+				//$("#oSlide").test();
+				//slide.test();
+				//slide.hideLoading();
+			})
+		</script>  
+		</div>
+			<div id="bot">boton</div>
+			<br>
+			IMAGE LIST; <br />
+			
+<!--				<div id="primerSlide" style="width:50%; height:400px; border:1px solid red; margin:auto;">
+					<a class="oSlide" href="sample_pics/01.jpg" title="titulo img 1" alt="descripcion de la primera imgágen para mostrar"   rel="ff"><img src="sample_pics/01.jpg" width="150" ></a>
+					<a class="oSlide" href="sample_pics/02.jpg"  title="Nai entre Banú" rel="ff" link="http://google.es" > <img src="sample_pics/02.jpg" width="150" ></a>		
+					<a class="oSlide" href="sample_pics/03.jpg"  alt="Página Web de O Ramís" rel="ff"><img src="sample_pics/03.jpg" width="150" ></a>
+				</div>
+				<br /><br /><br />
+				<div id="segundoSlide" style="width:800px; height:400px; border:1px solid green; margin:auto;" >
+					<a id="dd" class="oSlide" href="sample_pics/07.jpg" style ="display:none;" rel="ff2"><img src="sample_pics/07.jpg" width="150" ></a>
+					<a class="oSlide" href="sample_pics/08.jpg" style ="display:none;" rel="ff2"><img src="sample_pics/08.jpg" width="150" ></a>		
+					<a class="oSlide" href="sample_pics/09.jpg" style ="display:none;" rel="ff2"><img src="sample_pics/09.jpg" width="150" ></a>
+				</div>  
+				
+				<script>
+					$(document).ready(function(){
+						$(".oSlide").oSlide({
+							imageAnimation:"slideright",
+								fade:500, 
+								debug:true,
+								KenBurnsInFullScreen : false,
+								FillInFullScreen : false,
+								timeBetweenAnimations:6000,
+							
+								
+								kenBurns:0,
+								});
+					})					
+				</script>-->
+				
+			
+			
+				<a class="oSlide2" title="titulo img 1" href="sample_pics/01.jpg"  rel="ff2"><img src="sample_pics/01_thumb.jpg"></a>
+				<a class="oSlide2" href="sample_pics/02.jpg"  rel="ff3"><img src="sample_pics/02_thumb.jpg"></a>		
+				<a class="oSlide2" href="sample_pics/03.jpg"  rel="ff2"><img src="sample_pics/03_thumb.jpg"></a>
+				<script>
+					$(document).ready(function(){
+						$(".oSlide2").oSlide({
+							lightboxFunction:true,
+							imageAnimation:"slideright",
+							fade:500, 
+							debug:true,
+							KenBurnsInFullScreen : false,
+							FillInFullScreen : false,
+							timeBetweenAnimations:6000,
+							kenBurns:0,
+						});
+					})					
+				</script>
+						
+			
+			<br><br>
+			sadasdsad
+			<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
+			dsdfsafdsa
+			<br><br><br><br><br><br><br><br>
+			dsrdsf
+				
+<!-- 				</td>
+		</tr>
+	</table> -->
+	
+
+
+</body>
+</html>
