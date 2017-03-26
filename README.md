@@ -1,4 +1,5 @@
 # oSlide
+https://rawgit.com/AndresBott/oSlide/master/publications/0.9.2/demo.html
 ##(currently i stopped development) and switched to fotorama
 
 ###oSlide is a Javascript object oriented Slideshow plug-in for Jquery
